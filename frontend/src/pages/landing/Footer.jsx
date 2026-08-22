@@ -12,13 +12,13 @@ const COLUMNS = [
     ],
   },
   {
-    title: 'Courses',
-    links: [
-      { label: '6th – 8th Foundation', href: '#courses' },
-      { label: '9th – 10th Board Prep', href: '#courses' },
-      { label: '9th – 10th', href: '#courses' },
-    ],
-  },
+  title: 'Courses',
+  links: [
+    { label: '8th – 9th Foundation', href: '#courses' },
+    { label: '10th – 12th Board Prep', href: '#courses' },
+    // { label: '11th – 12th Board Exam', href: '#courses' },
+  ],
+},
   {
     title: 'Account',
     links: [
