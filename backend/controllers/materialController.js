@@ -1,10 +1,6 @@
 import Material from '../models/Material.js'
 import { createError, sendResponse, paginate } from '../utils/helpers.js'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+import { cloudinary } from '../middleware/upload.js'
 
 export const getMaterials = async (req, res, next) => {
   try {
@@ -54,7 +50,9 @@ export const uploadMaterial = async (req, res, next) => {
     const { title, description, type, subject, class: cls, batch } = req.body
     const material = await Material.create({
       title, description, type, subject, class: cls, batch: batch || 'all',
-      filePath: `/uploads/materials/${req.file.filename}`,
+      filePath: req.file.path,
+      filePublicId: req.file.filename,
+      fileResourceType: req.file.mimetype?.startsWith('image/') ? 'image' : 'raw',
       fileName: req.file.originalname,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
@@ -76,10 +74,9 @@ export const downloadMaterial = async (req, res, next) => {
     material.downloadCount += 1
     await material.save({ validateBeforeSave: false })
 
-    const filePath = path.join(__dirname, '..', material.filePath)
-    if (!fs.existsSync(filePath)) return next(createError(404, 'File not found on server'))
+    if (!material.filePath) return next(createError(404, 'File not found on server'))
 
-    res.download(filePath, material.fileName)
+    res.redirect(material.filePath)
   } catch (err) {
     next(err)
   }
@@ -90,8 +87,9 @@ export const deleteMaterial = async (req, res, next) => {
     const material = await Material.findById(req.params.id)
     if (!material) return next(createError(404, 'Material not found'))
 
-    const filePath = path.join(__dirname, '..', material.filePath)
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    if (material.filePublicId) {
+      await cloudinary.uploader.destroy(material.filePublicId, { resource_type: material.fileResourceType || 'raw' }).catch(() => {})
+    }
 
     await material.deleteOne()
     sendResponse(res, 200, null, 'Material deleted')

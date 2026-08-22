@@ -51,7 +51,7 @@ export const createPayment = async (req, res, next) => {
       paymentMethod,
       paymentDate: paymentDate || new Date(),
       receiptNumber,
-      receiptImage: req.file ? `/uploads/receipts/${req.file.filename}` : null,
+      receiptImage: req.file ? req.file.path : null,
       notes,
       month,
       paymentType: 'offline',
@@ -242,7 +242,7 @@ export const updatePayment = async (req, res, next) => {
     const { amount, paymentMethod, paymentDate, notes, month } = req.body
     const updates = { amount, paymentMethod, paymentDate, notes, month }
     Object.keys(updates).forEach(k => updates[k] === undefined && delete updates[k])
-    if (req.file) updates.receiptImage = `/uploads/receipts/${req.file.filename}`
+    if (req.file) updates.receiptImage = req.file.path
 
     const payment = await Payment.findByIdAndUpdate(req.params.id, updates, { new: true })
       .populate('studentId', 'fullName studentId')

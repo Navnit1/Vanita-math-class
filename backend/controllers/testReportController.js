@@ -1,11 +1,7 @@
 import TestReport from '../models/TestReport.js'
 import Student from '../models/Student.js'
 import { createError, sendResponse, paginate } from '../utils/helpers.js'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+import { cloudinary } from '../middleware/upload.js'
 
 export const getTestReports = async (req, res, next) => {
   try {
@@ -69,7 +65,9 @@ export const uploadTestReport = async (req, res, next) => {
       batch: student ? 'all' : (batch || 'all'),
       subject, testDate: testDate || undefined,
       marksObtained: marksObtained || undefined, totalMarks: totalMarks || undefined, remarks,
-      filePath: `/uploads/test-reports/${req.file.filename}`,
+      filePath: req.file.path,
+      filePublicId: req.file.filename,
+      fileResourceType: 'raw',
       fileName: req.file.originalname,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
@@ -101,10 +99,9 @@ export const downloadTestReport = async (req, res, next) => {
       }
     }
 
-    const filePath = path.join(__dirname, '..', report.filePath)
-    if (!fs.existsSync(filePath)) return next(createError(404, 'File not found on server'))
+    if (!report.filePath) return next(createError(404, 'File not found on server'))
 
-    res.download(filePath, report.fileName)
+    res.redirect(report.filePath)
   } catch (err) {
     next(err)
   }
@@ -115,8 +112,9 @@ export const deleteTestReport = async (req, res, next) => {
     const report = await TestReport.findById(req.params.id)
     if (!report) return next(createError(404, 'Report not found'))
 
-    const filePath = path.join(__dirname, '..', report.filePath)
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    if (report.filePublicId) {
+      await cloudinary.uploader.destroy(report.filePublicId, { resource_type: report.fileResourceType || 'raw' }).catch(() => {})
+    }
 
     await report.deleteOne()
     sendResponse(res, 200, null, 'Test report deleted')

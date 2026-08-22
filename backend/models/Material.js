@@ -8,6 +8,8 @@ const materialSchema = new mongoose.Schema({
   class: { type: String, required: true },
   batch: { type: String, default: 'all' },
   filePath: { type: String, required: true },
+  filePublicId: { type: String },
+  fileResourceType: { type: String, default: 'raw' },
   fileName: { type: String, required: true },
   fileSize: { type: Number },
   mimeType: { type: String },

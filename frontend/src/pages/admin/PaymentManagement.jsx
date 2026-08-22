@@ -359,7 +359,7 @@ export default function PaymentManagement() {
                   <td>
                     <div className="flex items-center gap-1">
                       {p.receiptImage && (
-                        <a href={`${apiBase.replace('/api', '')}${p.receiptImage}`} target="_blank" rel="noreferrer"
+                                               <a href={p.receiptImage.startsWith('http') ? p.receiptImage : `${apiBase.replace('/api', '')}${p.receiptImage}`} target="_blank" rel="noreferrer"
                           className="btn btn-ghost btn-sm p-1.5 text-slate-500" title="View uploaded receipt">
                           <Eye className="w-3.5 h-3.5" />
                         </a>

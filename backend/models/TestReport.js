@@ -11,6 +11,8 @@ const testReportSchema = new mongoose.Schema({
   totalMarks: { type: Number },
   remarks: { type: String, trim: true },
   filePath: { type: String, required: true },
+  filePublicId: { type: String },
+  fileResourceType: { type: String, default: 'raw' },
   fileName: { type: String, required: true },
   fileSize: { type: Number },
   mimeType: { type: String },

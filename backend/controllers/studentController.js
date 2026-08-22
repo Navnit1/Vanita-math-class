@@ -167,7 +167,7 @@ export const updateStudent = async (req, res, next) => {
       if (emailTaken) return next(createError(409, 'Email already in use by another account'))
     }
 
-    if (req.file) updates.profilePhoto = `/uploads/profiles/${req.file.filename}`
+    if (req.file) updates.profilePhoto = req.file.path
 
     const student = await Student.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
     if (!student) return next(createError(404, 'Student not found'))

@@ -206,7 +206,7 @@ export const updateProfile = async (req, res, next) => {
   try {
     const { name, phone } = req.body
     const updates = { name, phone }
-    if (req.file) updates.profilePhoto = `/uploads/profiles/${req.file.filename}`
+    if (req.file) updates.profilePhoto = req.file.path
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true })
     sendResponse(res, 200, user, 'Profile updated successfully')
