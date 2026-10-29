@@ -1,15 +1,13 @@
 import crypto from 'crypto'
 import User from '../models/User.js'
 import Student from '../models/Student.js'
-import Teacher from '../models/Teacher.js'
 import {
-  createError, generateAccessToken, generateRefreshToken,
-  generatePasswordResetToken, sendResponse
+  createError, generateAccessToken, generateRefreshToken, sendResponse
 } from '../utils/helpers.js'
 import { generateStudentCredentials } from '../utils/idGenerator.js'
 import { recordAudit } from '../utils/auditLog.js'
 import logger from '../utils/logger.js'
-import { sendPasswordResetEmail } from '../utils/mailer.js'
+import { sendPasswordResetOtpEmail, getEmailStatus } from '../services/emailService.js'
 
 export const login = async (req, res, next) => {
   try {
@@ -47,18 +45,16 @@ export const login = async (req, res, next) => {
     user.lastLogin = new Date()
     await user.save({ validateBeforeSave: false })
 
-    // Get role-specific profile
+    // Get role-specific profile (admin or student only)
     let profile = null
     if (user.role === 'student') {
       profile = await Student.findOne({ userId: user._id })
-    } else if (user.role === 'teacher') {
-      profile = await Teacher.findOne({ userId: user._id })
     }
 
-    logger.info(`User logged in: ${user.email} [${user.role}]`)
+    logger.info(`User logged in: ${user.email || user.username} [${user.role}]`)
 
     sendResponse(res, 200, {
-      user: { ...user.toJSON(), profile },
+      user: { ...user.toJSON(), profile, mustChangePassword: Boolean(user.mustChangePassword) },
       accessToken,
       refreshToken,
     }, 'Login successful')
@@ -71,25 +67,43 @@ export const login = async (req, res, next) => {
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, phone, password, class: studentClass, batch, parentName, parentPhone, address } = req.body
+    const { name, email, phone, password, class: studentClass, batch, parentName, parentPhone, address, school } = req.body
 
-    const existingUser = await User.findOne({ email })
-    if (existingUser) return next(createError(409, 'Email already registered'))
+    const existingUser = await User.findOne({ email: email.toLowerCase() })
+    if (existingUser) return next(createError(409, 'Email already registered. Please login or contact admin.'))
 
-    const { studentId, username } = await generateStudentCredentials(name, studentClass || '0')
+    const { studentId, username } = await generateStudentCredentials(name, studentClass || '8th')
 
-    const user = await User.create({ name, email, phone, username, password, role: 'student', status: 'pending' })
-
-    await Student.create({
-      studentId, userId: user._id,
-      fullName: name, email, phone,
-      class: studentClass || 'Not Set',
-      batch: batch || 'Not Set',
-      parentName, parentPhone, address,
+    // Students are created in 'pending' status — they cannot activate themselves without admin approval!
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      phone,
+      username,
+      password,
+      role: 'student',
+      status: 'pending',
+      mustChangePassword: false,
     })
 
-    logger.info(`New student registered: ${email}`)
-    sendResponse(res, 201, { studentId, username }, 'Registration successful. Admin will activate your account.')
+    await Student.create({
+      studentId,
+      userId: user._id,
+      fullName: name,
+      email: email.toLowerCase(),
+      phone,
+      class: studentClass || '8th',
+      batch: batch || 'Evening',
+      school: school || '',
+      parentName,
+      parentPhone,
+      address,
+      status: 'inactive', // inactive until admin approves admission
+      feeStatus: 'pending',
+    })
+
+    logger.info(`New student registration requested: ${email} (${name})`)
+    sendResponse(res, 201, { studentId, username }, 'Registration submitted successfully. The administrator will review and approve your account before you can log in.')
   } catch (err) {
     next(err)
   }
@@ -129,56 +143,126 @@ export const getMe = async (req, res, next) => {
     const user = await User.findById(req.user._id)
     let profile = null
     if (user.role === 'student') profile = await Student.findOne({ userId: user._id })
-    else if (user.role === 'teacher') profile = await Teacher.findOne({ userId: user._id })
-    sendResponse(res, 200, { ...user.toJSON(), profile })
+    sendResponse(res, 200, { ...user.toJSON(), profile, mustChangePassword: Boolean(user.mustChangePassword) })
   } catch (err) {
     next(err)
   }
 }
 
-export const forgotPassword = async (req, res, next) => {
+/**
+ * PHASE 11: Free Email 6-Digit OTP Password Recovery
+ */
+export const requestPasswordResetOtp = async (req, res, next) => {
   try {
-    const { email } = req.body
-    const user = await User.findOne({ email })
-    // Always return success to prevent email enumeration
-    if (!user) return sendResponse(res, 200, null, 'If that email exists, a reset link has been sent.')
+    const { identifier } = req.body
+    const loginId = (identifier || '').trim().toLowerCase()
+    if (!loginId) return next(createError(400, 'Please provide your registered email or username'))
 
-    const { resetToken, hashedToken, expiresAt } = generatePasswordResetToken()
-    user.passwordResetToken = hashedToken
-    user.passwordResetExpires = expiresAt
+    // Find by email or username
+    let user = await User.findOne({
+      $or: [{ email: loginId }, { username: loginId }],
+    }).select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +lastOtpSentAt')
+
+    if (!user && !loginId.includes('@')) {
+      const student = await Student.findOne({ studentId: new RegExp(`^${loginId}$`, 'i') })
+      if (student) {
+        user = await User.findById(student.userId).select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +lastOtpSentAt')
+      }
+    }
+
+    // Generic safe response to prevent account enumeration
+    const genericSuccess = 'If that account exists with a registered email, a 6-digit recovery code has been sent. Please check your inbox and spam folder.'
+
+    if (!user || !user.email || user.email.endsWith('@vanitamaths.local')) {
+      return sendResponse(res, 200, { emailSent: false }, genericSuccess)
+    }
+
+    // Rate limit: 60 seconds cooldown between OTP requests
+    if (user.lastOtpSentAt && Date.now() - new Date(user.lastOtpSentAt).getTime() < 60 * 1000) {
+      return next(createError(429, 'Please wait 60 seconds before requesting another code.'))
+    }
+
+    // Generate cryptographically secure 6-digit OTP
+    const otp = String(crypto.randomInt(100000, 999999))
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex')
+
+    user.resetPasswordOtpHash = otpHash
+    user.resetPasswordOtpExpires = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes expiry
+    user.resetPasswordOtpAttempts = 0
+    user.lastOtpSentAt = new Date()
     await user.save({ validateBeforeSave: false })
 
     try {
-      await sendPasswordResetEmail(user.email, resetToken)
-      logger.info(`Password reset email sent to: ${email}`)
+      await sendPasswordResetOtpEmail(user.email, otp)
     } catch (mailErr) {
-      logger.error(`Failed to send reset email to ${email}: ${mailErr.message}`)
+      logger.error('Failed to dispatch OTP email:', mailErr.message)
     }
 
-    sendResponse(res, 200, null, 'If that email exists, a reset link has been sent.')
+    sendResponse(res, 200, { emailSent: true }, genericSuccess)
   } catch (err) {
     next(err)
   }
 }
 
-export const resetPassword = async (req, res, next) => {
+export const verifyOtpAndResetPassword = async (req, res, next) => {
   try {
-    const { token, password } = req.body
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+    const { identifier, otp, newPassword } = req.body
+    if (!identifier || !otp || !newPassword) {
+      return next(createError(400, 'Identifier, 6-digit OTP code, and new password are required'))
+    }
 
-    const user = await User.findOne({
-      passwordResetToken: hashedToken,
-      passwordResetExpires: { $gt: Date.now() },
-    }).select('+passwordResetToken +passwordResetExpires')
+    if (newPassword.length < 6) {
+      return next(createError(400, 'New password must be at least 6 characters'))
+    }
 
-    if (!user) return next(createError(400, 'Invalid or expired reset token'))
+    const loginId = identifier.trim().toLowerCase()
+    let user = await User.findOne({
+      $or: [{ email: loginId }, { username: loginId }],
+    }).select('+password +resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts')
 
-    user.password = password
-    user.passwordResetToken = undefined
-    user.passwordResetExpires = undefined
+    if (!user && !loginId.includes('@')) {
+      const student = await Student.findOne({ studentId: new RegExp(`^${loginId}$`, 'i') })
+      if (student) {
+        user = await User.findById(student.userId).select('+password +resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts')
+      }
+    }
+
+    if (!user || !user.resetPasswordOtpHash || !user.resetPasswordOtpExpires) {
+      return next(createError(400, 'Invalid or expired OTP code. Please request a new code.'))
+    }
+
+    if (new Date() > user.resetPasswordOtpExpires) {
+      user.resetPasswordOtpHash = undefined
+      user.resetPasswordOtpExpires = undefined
+      await user.save({ validateBeforeSave: false })
+      return next(createError(400, 'Verification code has expired. Codes are valid for 5 minutes only.'))
+    }
+
+    if (user.resetPasswordOtpAttempts >= 3) {
+      user.resetPasswordOtpHash = undefined
+      user.resetPasswordOtpExpires = undefined
+      await user.save({ validateBeforeSave: false })
+      return next(createError(400, 'Too many incorrect attempts. Please request a new verification code.'))
+    }
+
+    const providedHash = crypto.createHash('sha256').update(String(otp).trim()).digest('hex')
+    if (providedHash !== user.resetPasswordOtpHash) {
+      user.resetPasswordOtpAttempts = (user.resetPasswordOtpAttempts || 0) + 1
+      await user.save({ validateBeforeSave: false })
+      const remaining = 3 - user.resetPasswordOtpAttempts
+      return next(createError(400, `Incorrect code. ${remaining > 0 ? `${remaining} attempts remaining.` : 'Code invalidated.'}`))
+    }
+
+    // Success: single-use, clear OTP immediately and set new password
+    user.password = newPassword
+    user.resetPasswordOtpHash = undefined
+    user.resetPasswordOtpExpires = undefined
+    user.resetPasswordOtpAttempts = 0
+    user.mustChangePassword = false
     await user.save()
 
-    sendResponse(res, 200, null, 'Password reset successfully. Please login.')
+    logger.info(`Password successfully reset via OTP for user: ${user.username || user.email}`)
+    sendResponse(res, 200, null, 'Password reset successfully! You can now log in with your new password.')
   } catch (err) {
     next(err)
   }
@@ -191,6 +275,10 @@ export const changePassword = async (req, res, next) => {
 
     if (!(await user.comparePassword(currentPassword))) {
       return next(createError(401, 'Current password is incorrect'))
+    }
+
+    if (newPassword.length < 6) {
+      return next(createError(400, 'New password must be at least 6 characters'))
     }
 
     user.password = newPassword

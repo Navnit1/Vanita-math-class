@@ -1,94 +1,96 @@
 import { motion } from 'framer-motion'
+import { Award, CheckCircle2, GraduationCap, MapPin, Phone } from 'lucide-react'
 import vanitaImg from '../../images/v.webp'
-
-const FACULTY = [
-  {
-    name: 'Mrs. Vanita Rani Gupta',
-    role: 'Tutor',
-    qualification: 'M. Sc. (Maths), M. Phil (Maths), B.Ed, 15+ yrs',
-    img: vanitaImg,
-    details: [
-      'Qualifications: M. Sc. (Maths), M. Phil (Maths), B.Ed.',
-      'Also qualified the Central Teacher Eligibility Test and Punjab State Teacher Eligibility Test.',
-      ' 17+ years of teaching experience in Mathematics.',
-      'Dealing with the students in a very polite manner.',
-      'Given the 100% results of previous batch students.',
-    ],
-  },
-  // { name: 'Priya Sharma', role: 'Faculty, 9th–10th', qualification: 'M.Sc Mathematics', img: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80' },
-  // { name: 'Anil Kulkarni', role: 'Faculty, 6th–8th Foundation', qualification: 'B.Ed, M.Sc Mathematics', img: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&q=80' },
-  // { name: 'Rohan Mehta', role: 'Faculty, JEE Mathematics', qualification: 'B.Tech IIT, 8+ yrs', img: 'https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?w=400&q=80' },
-]
 
 export default function Faculty() {
   return (
-    <section id="faculty" className="bg-ink-950 py-20 sm:py-28">
+    <section id="faculty" className="bg-white py-20 sm:py-28 border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.5 }}
-          className="max-w-xl mb-14"
+          className="max-w-2xl mb-14"
         >
-          <p className="text-gold-300 font-mono text-sm tracking-wide uppercase mb-3">Faculty</p>
-          <h2 className="font-display text-3xl sm:text-4xl font-medium text-chalk-100 leading-tight">
-            The people at the board.
+          <span className="text-primary-600 font-bold text-xs tracking-wider uppercase mb-2 block">
+            Experienced Mentorship
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+            Meet Your Faculty: Vanita Rani Gupta
           </h2>
+          <p className="mt-3 text-gray-600 text-sm leading-relaxed">
+            Personalized guidance from a seasoned educator dedicated exclusively to high-school and senior-secondary mathematics.
+          </p>
         </motion.div>
 
-        <div className="space-y-14">
-          {FACULTY.map((f, i) => (
-            <motion.div
-              key={f.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.45, delay: i * 0.08 }}
-              className="grid sm:grid-cols-[minmax(0,280px)_1fr] gap-8 items-start"
-            >
-              {/* Photo */}
-              <div className="group">
-                <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-ink-900">
-                  <img src={f.img} alt={f.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/10 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-chalk-100 font-medium text-sm">{f.name}</p>
-                    <p className="text-gold-300 text-xs mt-0.5">{f.role}</p>
-                  </div>
+        <div className="bg-gray-50 rounded-3xl border border-gray-200 p-6 sm:p-10 shadow-sm">
+          <div className="grid lg:grid-cols-12 gap-10 items-center">
+            {/* Faculty Portrait */}
+            <div className="lg:col-span-5">
+              <div className="relative aspect-[3/4] max-w-sm mx-auto rounded-2xl overflow-hidden bg-white border border-gray-200 shadow-md">
+                <img
+                  src={vanitaImg}
+                  alt="Vanita Rani Gupta"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <p className="font-extrabold text-lg">Mrs. Vanita Rani Gupta</p>
+                  <p className="text-xs text-red-200 font-semibold">Founder & Chief Mathematics Mentor</p>
                 </div>
-                {f.qualification && (
-                  <p className="text-chalk-200/45 text-xs mt-3">{f.qualification}</p>
-                )}
+              </div>
+            </div>
+
+            {/* Details & Credentials */}
+            <div className="lg:col-span-7 space-y-6">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-100/60 text-primary-800 text-xs font-bold mb-3">
+                  <GraduationCap className="w-4 h-4 text-primary-600" />
+                  M.Sc. (Maths) · M.Phil. (Maths) · B.Ed.
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black text-gray-900">
+                  Vanita Rani Gupta
+                </h3>
+                <p className="text-sm font-semibold text-primary-600 mt-1">
+                  17+ Years of Dedicated Mathematics Teaching in Bathinda
+                </p>
               </div>
 
-              {/* Details */}
-              {f.details && (
-                <ul className="space-y-3 mt-1">
-                  {f.details.map((d, idx) => {
-                    const isLinked = typeof d === 'object'
-                    return (
-                      <li key={idx} className="flex gap-3 text-chalk-200/70 text-sm sm:text-base leading-relaxed">
-                        <span className="text-gold-300 mt-1.5 w-1.5 h-1.5 rounded-full bg-gold-300 flex-shrink-0" />
-                        {isLinked ? (
-                          <a
-                            href={d.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:text-gold-300 underline decoration-gold-300/40 underline-offset-4 transition-colors"
-                          >
-                            {d.text}
-                          </a>
-                        ) : (
-                          <span>{d}</span>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </motion.div>
-          ))}
+              <p className="text-sm text-gray-700 leading-relaxed">
+                With over 17 years of teaching experience, Mrs. Vanita Rani Gupta has helped hundreds of students across Bathinda build unshakeable mathematical confidence. Qualified in both the Central Teacher Eligibility Test (CTET) and Punjab State Teacher Eligibility Test (PSTET), she combines pedagogical rigor with immense patience.
+              </p>
+
+              <div className="space-y-3 pt-2">
+                {[
+                  'Post-Graduate & Research Degrees: M.Sc. (Mathematics) & M.Phil. (Mathematics), B.Ed.',
+                  'Qualified Central Teacher Eligibility Test (CTET) & Punjab State Teacher Eligibility Test (PSTET)',
+                  'Consistently delivers 100% board examination pass rates with top scorers scoring 95%+',
+                  'Provides handcrafted, easy-to-understand notes & chapterwise question banks',
+                  'Conducts disciplined weekly tests with strict individual evaluation and feedback',
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span className="text-xs sm:text-sm text-gray-700 font-medium leading-snug">
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-6 border-t border-gray-200 flex flex-wrap items-center gap-6 text-xs text-gray-600">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-primary-600" /> #302, Phase-II, Vishal Nagar, Bathinda
+                </span>
+                <a
+                  href="tel:+919815962612"
+                  className="flex items-center gap-1.5 font-bold text-gray-900 hover:text-primary-600 transition-colors"
+                >
+                  <Phone className="w-4 h-4 text-primary-600" /> +91 98159-62612
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

@@ -8,10 +8,10 @@ import { Calendar, CheckCircle, XCircle, Clock, List, LayoutGrid } from 'lucide-
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns'
 
 const STATUS_MAP = {
-  present: { label: 'Present', color: 'bg-green-500', badge: 'green' },
-  late: { label: 'Late', color: 'bg-yellow-400', badge: 'yellow' },
-  absent: { label: 'Absent', color: 'bg-red-400', badge: 'red' },
-  excused: { label: 'Excused', color: 'bg-blue-400', badge: 'blue' },
+  present: { label: 'Present', color: 'bg-emerald-500', badge: 'success' },
+  late: { label: 'Late', color: 'bg-amber-400', badge: 'warning' },
+  absent: { label: 'Absent', color: 'bg-primary-600', badge: 'danger' },
+  excused: { label: 'Excused', color: 'bg-gray-400', badge: 'slate' },
 }
 
 export default function StudentAttendance() {
@@ -30,7 +30,9 @@ export default function StudentAttendance() {
 
   const statusByDay = useMemo(() => {
     const map = {}
-    attendance.forEach(a => { map[format(parseISO(a.date), 'yyyy-MM-dd')] = a.status })
+    attendance.forEach((a) => {
+      map[format(parseISO(a.date), 'yyyy-MM-dd')] = a.status
+    })
     return map
   }, [attendance])
 
@@ -42,146 +44,209 @@ export default function StudentAttendance() {
     return { days, leadingBlanks }
   }, [month, year])
 
-  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December']
+  const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ]
 
   return (
     <Sidebar>
       <div className="page-header">
-        <h1 className="page-title">My Attendance</h1>
-        <p className="page-subtitle">Track your class attendance record</p>
+        <h1 className="page-title">My Attendance Record</h1>
+        <p className="page-subtitle">Monthly class attendance log and regularity statistics</p>
       </div>
 
       {/* Filters */}
-      <div className="card p-4 mb-5 flex flex-wrap gap-3 items-center">
-        <div>
-          <label className="label">Month</label>
-          <select value={month} onChange={e => setMonth(Number(e.target.value))} className="input w-36">
-            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-          </select>
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Month</label>
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg text-sm px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {MONTHS.map((m, i) => (
+                <option key={m} value={i + 1}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Year</label>
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg text-sm px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {[2024, 2025, 2026, 2027].map((y) => (
+                <option key={y}>{y}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div>
-          <label className="label">Year</label>
-          <select value={year} onChange={e => setYear(Number(e.target.value))} className="input w-24">
-            {[2023, 2024, 2025, 2026].map(y => <option key={y}>{y}</option>)}
-          </select>
+
+        {/* View Switch */}
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setView('calendar')}
+            className={cn(
+              'px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1',
+              view === 'calendar' ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500 hover:text-gray-900'
+            )}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" /> Calendar
+          </button>
+          <button
+            onClick={() => setView('list')}
+            className={cn(
+              'px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1',
+              view === 'list' ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500 hover:text-gray-900'
+            )}
+          >
+            <List className="w-3.5 h-3.5" /> List
+          </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-        <div className="stat-card">
-          <p className="text-xs text-slate-500">Total Classes</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{stats.total ?? 0}</p>
+      {/* Stats Summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <p className="text-xs text-gray-500 font-medium">Total Classes</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total ?? 0}</p>
         </div>
-        <div className="stat-card">
-          <p className="text-xs text-slate-500">Present</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{stats.present ?? 0}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <p className="text-xs text-gray-500 font-medium">Days Present</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{stats.present ?? 0}</p>
         </div>
-        <div className="stat-card">
-          <p className="text-xs text-slate-500">Absent</p>
-          <p className="text-2xl font-bold text-red-500 mt-1">{stats.absent ?? 0}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <p className="text-xs text-gray-500 font-medium">Days Absent</p>
+          <p className="text-2xl font-bold text-primary-600 mt-1">{stats.absent ?? 0}</p>
         </div>
-        <div className="stat-card">
-          <p className="text-xs text-slate-500">Percentage</p>
-          <p className={cn('text-2xl font-bold mt-1', stats.percentage >= 75 ? 'text-green-600' : 'text-red-500')}>{stats.percentage ?? 0}%</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <p className="text-xs text-gray-500 font-medium">Attendance %</p>
+          <p
+            className={cn(
+              'text-2xl font-bold mt-1',
+              (stats.percentage ?? 0) >= 75 ? 'text-emerald-600' : 'text-primary-600'
+            )}
+          >
+            {stats.percentage ?? 0}%
+          </p>
         </div>
       </div>
 
       {stats.percentage < 75 && stats.total > 0 && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
-          <XCircle className="w-4 h-4" />
-          Your attendance is below 75%. Please ensure regular attendance to maintain eligibility.
-        </div>
-      )}
-      {stats.percentage >= 75 && stats.total > 0 && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
-          <CheckCircle className="w-4 h-4" />
-          Great! Your attendance is above 75%.
+        <div className="bg-red-50 border border-primary-200 text-primary-800 text-sm px-4 py-3 rounded-xl mb-6 flex items-center gap-2">
+          <XCircle className="w-4 h-4 shrink-0 text-primary-600" />
+          Attendance is below 75%. Please ensure regular attendance to achieve top results in mathematics.
         </div>
       )}
 
-      {/* View toggle */}
-      <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => setView('calendar')} className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
-          view === 'calendar' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300')}>
-          <LayoutGrid className="w-3.5 h-3.5" /> Calendar
-        </button>
-        <button onClick={() => setView('list')} className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
-          view === 'list' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300')}>
-          <List className="w-3.5 h-3.5" /> List
-        </button>
-      </div>
+      {/* Calendar or List View */}
+      {isLoading ? (
+        <PageLoader />
+      ) : view === 'calendar' ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+          <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-bold text-gray-500 uppercase">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+              <div key={d} className="py-2">
+                {d}
+              </div>
+            ))}
+          </div>
 
-      {isLoading ? <PageLoader /> : view === 'calendar' ? (
-        <div className="card p-5">
-          {attendance.length === 0 ? (
-            <EmptyState icon={Calendar} title="No attendance records" description={`No attendance data for ${MONTHS[month - 1]} ${year}`} />
-          ) : (
-            <>
-              <div className="grid grid-cols-7 gap-2 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <div key={d} className="text-center text-xs font-medium text-slate-400 py-1">{d}</div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-2">
-                {Array.from({ length: calendarDays.leadingBlanks }).map((_, i) => <div key={`b${i}`} />)}
-                {calendarDays.days.map(d => {
-                  const key = format(d, 'yyyy-MM-dd')
-                  const status = statusByDay[key]
-                  const info = status ? STATUS_MAP[status] : null
-                  return (
-                    <div key={key} className={cn(
-                      'aspect-square rounded-lg flex flex-col items-center justify-center text-sm border transition-colors',
-                      info ? `${info.color} text-white border-transparent font-medium` : 'bg-slate-50 text-slate-400 border-slate-100'
-                    )}>
-                      {format(d, 'd')}
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="flex flex-wrap gap-4 mt-5 pt-4 border-t border-slate-100">
-                {Object.entries(STATUS_MAP).map(([key, info]) => (
-                  <span key={key} className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                    <span className={cn('w-2.5 h-2.5 rounded-full', info.color)} />
-                    {info.label}
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: calendarDays.leadingBlanks }).map((_, i) => (
+              <div key={`blank-${i}`} className="h-16 rounded-xl bg-gray-50/50" />
+            ))}
+
+            {calendarDays.days.map((day) => {
+              const dateStr = format(day, 'yyyy-MM-dd')
+              const status = statusByDay[dateStr]
+              const isToday = format(now, 'yyyy-MM-dd') === dateStr
+
+              return (
+                <div
+                  key={dateStr}
+                  className={cn(
+                    'h-16 rounded-xl border p-2 flex flex-col justify-between transition-all',
+                    isToday ? 'border-primary-500 ring-2 ring-primary-100' : 'border-gray-100',
+                    status === 'present'
+                      ? 'bg-emerald-50/40 border-emerald-200'
+                      : status === 'absent'
+                      ? 'bg-red-50/40 border-red-200'
+                      : status === 'late'
+                      ? 'bg-amber-50/40 border-amber-200'
+                      : 'bg-white'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'text-xs font-bold',
+                      isToday ? 'text-primary-600' : 'text-gray-700'
+                    )}
+                  >
+                    {format(day, 'd')}
                   </span>
-                ))}
-              </div>
-            </>
-          )}
+
+                  {status && (
+                    <span
+                      className={cn(
+                        'text-[10px] font-bold px-1.5 py-0.5 rounded text-center uppercase tracking-wider',
+                        status === 'present'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : status === 'absent'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-amber-100 text-amber-800'
+                      )}
+                    >
+                      {status}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       ) : (
-      <div className="table-container">
-        {attendance.length === 0 ? (
-          <EmptyState icon={Calendar} title="No attendance records" description={`No attendance data for ${MONTHS[month - 1]} ${year}`} />
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Day</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendance.map(a => {
-                const d = parseISO(a.date)
-                const info = STATUS_MAP[a.status] || STATUS_MAP.absent
-                return (
-                  <tr key={a._id}>
-                    <td className="font-medium text-sm text-slate-900">{format(d, 'dd MMM yyyy')}</td>
-                    <td className="text-sm text-slate-500">{format(d, 'EEEE')}</td>
-                    <td>
-                      <Badge variant={info.badge}>{info.label}</Badge>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          {attendance.length === 0 ? (
+            <EmptyState
+              icon={Calendar}
+              title="No records for this month"
+              description="Attendance marks will show here once recorded by the admin."
+            />
+          ) : (
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50 text-gray-600 text-xs font-semibold uppercase">
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Batch</th>
+                  <th className="py-3 px-4">Remarks</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {attendance.map((a) => (
+                  <tr key={a._id} className="hover:bg-gray-50/50">
+                    <td className="py-3 px-4 font-semibold text-gray-900">
+                      {format(parseISO(a.date), 'dd MMMM yyyy (EEEE)')}
                     </td>
+                    <td className="py-3 px-4">
+                      <Badge variant={STATUS_MAP[a.status]?.badge || 'slate'}>
+                        {a.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-500">{a.batch || 'Regular'}</td>
+                    <td className="py-3 px-4 text-xs text-gray-500">{a.remarks || '—'}</td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       )}
     </Sidebar>
   )

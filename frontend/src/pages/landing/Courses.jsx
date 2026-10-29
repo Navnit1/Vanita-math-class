@@ -1,62 +1,118 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, BookOpen, Check } from 'lucide-react'
 
 const COURSES = [
-  { std: '8th', focus: 'Number Systems & Basic Geometry', tag: 'Foundation' },
-  { std: '9th', focus: 'Algebra Basics & Mensuration', tag: 'Foundation' },
-  { std: '10th', focus: 'Linear Equations & Data Handling', tag: 'Foundation' },
-  { std: '11th', focus: 'Polynomials & Coordinate Geometry', tag: 'Board Prep' },
-  { std: '12th', focus: 'Trigonometry & Quadratic Equations', tag: 'Board Exam' },
+  {
+    std: 'Class 8th',
+    focus: 'Rational Numbers, Linear Equations, Algebraic Expressions & Mensuration',
+    tag: 'Foundation',
+    features: ['Strong algebra fundamentals', 'School exam prep', 'Weekly practice tests'],
+  },
+  {
+    std: 'Class 9th',
+    focus: 'Number Systems, Polynomials, Coordinate Geometry, Triangles & Circles',
+    tag: 'Bridge Course',
+    features: ['Step-by-step theorem proofs', 'NCERT + exemplar mastery', 'Regular doubt clearing'],
+  },
+  {
+    std: 'Class 10th',
+    focus: 'Real Numbers, Quadratic Equations, Trigonometry & Surface Areas',
+    tag: 'Board Excellence',
+    features: ['Board exam test series', '100% past year questions', 'Time management coaching'],
+  },
+  {
+    std: 'Class +1',
+    focus: 'Sets, Trigonometric Functions, Permutations, Conic Sections & Calculus Intro',
+    tag: 'Senior Secondary',
+    features: ['Deep conceptual grounding', 'Higher secondary rigor', 'Formula derivations'],
+  },
+  {
+    std: 'Class +2',
+    focus: 'Relations & Functions, Matrices, Continuity & Diff, Integrals, Vectors & 3D',
+    tag: 'Board & Entrance',
+    features: ['Board topper strategies', 'Integration speed techniques', 'Weekly full mock tests'],
+  },
 ]
 
 export default function Courses() {
   return (
-    <section id="courses" className="bg-chalk-100 py-20 sm:py-28">
+    <section id="courses" className="bg-gray-50/70 py-20 sm:py-28 border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12"
+          className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-14"
         >
           <div>
-            <p className="text-mark font-mono text-sm tracking-wide uppercase mb-3">Courses & subjects</p>
-            <h2 className="font-display text-3xl sm:text-4xl font-medium text-ink-950 leading-tight">
-              One subject, every standard,<br className="hidden sm:block" /> 8th through 12th.
+            <span className="text-primary-600 font-bold text-xs tracking-wider uppercase mb-2 block">
+              Curriculum & Classes
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+              Comprehensive Mathematics Coaching for 8th to +2
             </h2>
           </div>
-          <p className="text-steel-500 text-sm max-w-xs">
-            Each standard runs as its own batch with a syllabus matched to that year's board curriculum.
+          <p className="text-gray-600 text-sm max-w-sm">
+            Each standard is taught in small focused batches adhering strictly to CBSE and State Board curriculum.
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {COURSES.map((c, i) => (
             <motion.div
               key={c.std}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group relative bg-ink-950 rounded-2xl p-5 lg:p-4 flex lg:flex-col lg:items-start items-center gap-4 lg:gap-3 hover:bg-ink-900 transition-colors"
+              transition={{ duration: 0.4, delay: i * 0.06 }}
+              className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary-400 hover:shadow-lg transition-all flex flex-col justify-between"
             >
               <div>
-                <p className="font-display text-3xl lg:text-4xl text-gold-300 font-medium leading-none">{c.std}</p>
-                <p className="text-chalk-200/40 text-[11px] mt-2 uppercase tracking-wide font-mono">{c.tag}</p>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200">
+                    {c.tag}
+                  </span>
+                  <BookOpen className="w-4 h-4 text-gray-400" />
+                </div>
+
+                <h3 className="text-2xl font-black text-gray-900 mb-2">{c.std}</h3>
+                <p className="text-xs text-gray-600 leading-relaxed min-h-[3rem] font-medium">
+                  {c.focus}
+                </p>
+
+                <div className="mt-5 pt-4 border-t border-gray-100 space-y-2">
+                  {c.features.map((f, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-gray-700">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-chalk-200/70 text-sm leading-snug lg:mt-2 flex-1">{c.focus}</p>
-              <ArrowUpRight className="w-4 h-4 text-gold-400/0 group-hover:text-gold-400 transition-colors hidden lg:block lg:absolute lg:top-4 lg:right-4" />
+
+              <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-500">Only Mathematics</span>
+                <a
+                  href="#contact"
+                  className="text-xs font-bold text-primary-600 hover:text-primary-700 inline-flex items-center gap-1"
+                >
+                  Enquire Now <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
             </motion.div>
           ))}
         </div>
 
-        <div className="mt-10 text-center">
-          <Link to="/register" className="inline-flex items-center gap-2 text-ink-950 font-medium hover:text-mark transition-colors">
-            Find the right batch for your child
+        <div className="mt-12 text-center">
+          <a
+            href="#contact"
+            className="inline-flex items-center gap-2 text-primary-600 font-bold hover:text-primary-700 transition-colors text-sm"
+          >
+            Looking for batch timings or custom assistance? Send an enquiry
             <ArrowUpRight className="w-4 h-4" />
-          </Link>
+          </a>
         </div>
       </div>
     </section>

@@ -17,10 +17,11 @@ import announcementRoutes from './routes/announcements.js'
 import materialRoutes from './routes/materials.js'
 import adminRoutes from './routes/admin.js'
 import contactRoutes from './routes/contact.js'
+import testReportRoutes from './routes/testReports.js'
+import weeklyTestRoutes from './routes/weeklyTests.js'
 
 import { notFound, errorHandler } from './middleware/errorHandler.js'
 import logger from './utils/logger.js'
-import testReportRoutes from './routes/testReports.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -36,17 +37,18 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 300,
   message: { success: false, message: 'Too many requests. Please try again later.' },
 })
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 30,
   message: { success: false, message: 'Too many auth attempts. Please try again after 15 minutes.' },
 })
 
 app.use('/api/', limiter)
 app.use('/api/auth/login', authLimiter)
+app.use('/api/auth/send-otp', authLimiter)
 app.use('/api/auth/forgot-password', authLimiter)
 
 // Body parsers
@@ -66,7 +68,7 @@ if (process.env.NODE_ENV !== 'test') {
   }))
 }
 
-// Static files (uploaded files)
+// Static files (uploaded files for local fallback)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Routes
@@ -80,10 +82,17 @@ app.use('/api/materials', materialRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/test-reports', testReportRoutes)
+app.use('/api/weekly-tests', weeklyTestRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Vanita Maths Classes API running', timestamp: new Date().toISOString() })
+  res.json({
+    success: true,
+    message: 'Vanita Math Classes API running',
+    version: '2.0.0',
+    theme: 'red-and-white',
+    timestamp: new Date().toISOString()
+  })
 })
 
 // Error handlers

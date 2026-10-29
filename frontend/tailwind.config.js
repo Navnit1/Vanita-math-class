@@ -4,76 +4,93 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
-        display: ['Fraunces', 'serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
+        // VMC Official Red Theme
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#FFF5F5',
+          100: '#FFE5E7',
+          200: '#FFCCD0',
+          300: '#FF99A2',
+          400: '#FF3347', // Accent red
+          500: '#E50914', // Primary red
+          600: '#C90019', // Deep red
+          700: '#A50014',
+          800: '#7D000F',
+          900: '#52000A',
         },
+        // Neutral Slate / Gray
         slate: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
+          50: '#FAFAFA',  // Background
+          100: '#F3F4F6', // Light gray surface
+          200: '#E5E7EB',
+          300: '#D9DDE3', // Border gray
+          400: '#94A3B8',
+          500: '#64748B', // Secondary text
           600: '#475569',
           700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
+          800: '#1F2937',
+          900: '#171717', // Main text
         },
-        // Landing page palette — "chalkboard & compass" identity
+        // Semantic aliases
+        vmc: {
+          red: '#E50914',
+          deep: '#C90019',
+          accent: '#FF3347',
+          bg: '#FAFAFA',
+          card: '#FFFFFF',
+          light: '#F3F4F6',
+          border: '#D9DDE3',
+          text: '#171717',
+          muted: '#64748B',
+          green: '#059669',
+          amber: '#F59E0B',
+        },
+        // Retain compatibility mappings without blues
         ink: {
-          DEFAULT: '#0B1D3A',
-          950: '#071326',
-          900: '#0B1D3A',
-          800: '#122A52',
-          700: '#1A3A6E',
+          DEFAULT: '#171717',
+          950: '#171717',
+          900: '#1F2937',
+          800: '#334155',
+          700: '#475569',
         },
         chalk: {
-          DEFAULT: '#FBF9F3',
-          100: '#FBF9F3',
-          200: '#F3EFE2',
+          DEFAULT: '#FFFFFF',
+          100: '#FAFAFA',
+          200: '#F3F4F6',
         },
         gold: {
-          DEFAULT: '#D4A24C',
-          300: '#E3C079',
-          400: '#D4A24C',
-          500: '#B8863A',
+          DEFAULT: '#E50914',
+          300: '#FF99A2',
+          400: '#E50914',
+          500: '#C90019',
         },
         mark: {
-          DEFAULT: '#E8543E',
+          DEFAULT: '#E50914',
         },
         steel: {
-          DEFAULT: '#3D5A80',
-          300: '#7C97BC',
-          400: '#5A7AA3',
-          500: '#3D5A80',
+          DEFAULT: '#64748B',
+          300: '#D9DDE3',
+          400: '#94A3B8',
+          500: '#64748B',
         },
       },
       boxShadow: {
-        'card': '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)',
-        'card-md': '0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.07)',
-        'card-lg': '0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -4px rgba(0,0,0,0.07)',
+        'card': '0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04)',
+        'card-md': '0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04)',
+        'card-lg': '0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04)',
+        'red-glow': '0 4px 14px 0 rgba(229, 9, 20, 0.25)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-out',
-        'slide-up': 'slideUp 0.3s ease-out',
+        'fade-in': 'fadeIn 0.25s ease-out',
+        'slide-up': 'slideUp 0.25s ease-out',
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
-        slideUp: { from: { opacity: 0, transform: 'translateY(8px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+        slideUp: { from: { opacity: 0, transform: 'translateY(6px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
       },
     },
   },

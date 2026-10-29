@@ -1,12 +1,6 @@
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
 
-// Downloads use responseType: 'blob'. If the request fails (expired token,
-// 404, server error) or the server sends back JSON/HTML instead of the real
-// file, axios still hands us a Blob — and naively saving that Blob under the
-// real file's name is exactly why a failed download can look like it "opens
-// as a text file" (you're actually opening the error message). This reads
-// the blob back out as text and surfaces the real error via toast instead.
 const readBlobErrorMessage = async (blob, fallback) => {
   try {
     const text = await blob.text()
@@ -57,8 +51,23 @@ export const studentService = {
   create: async (payload) => { const { data } = await api.post('/students', payload); return data.data },
   update: async (id, payload) => { const { data } = await api.put(`/students/${id}`, payload); return data.data },
   approve: async (id) => { const { data } = await api.patch(`/students/${id}/approve`); return data.data },
+  toggleStatus: async (id) => { const { data } = await api.patch(`/students/${id}/toggle-status`); return data.data },
+  adminResetPassword: async (id) => { const { data } = await api.post(`/students/${id}/reset-password`); return data.data },
   delete: async (id) => { const { data } = await api.delete(`/students/${id}`); return data },
+  exportCsv: async (params) => {
+    await downloadFile('/students/export/csv', `vmc-students-${new Date().toISOString().slice(0, 10)}.csv`, 'Failed to export CSV')
+  },
 }
+
+export const weeklyTestService = {
+  getAll: async (params) => { const { data } = await api.get('/weekly-tests', { params }); return data.data },
+  schedule: async (payload) => { const { data } = await api.post('/weekly-tests', payload); return data.data },
+  getSheet: async (id) => { const { data } = await api.get(`/weekly-tests/${id}/sheet`); return data.data },
+  saveMarks: async (id, marksList) => { const { data } = await api.post(`/weekly-tests/${id}/marks`, { marksList }); return data.data },
+  getMyResults: async () => { const { data } = await api.get('/weekly-tests/my-results'); return data.data },
+  delete: async (id) => { const { data } = await api.delete(`/weekly-tests/${id}`); return data },
+}
+
 export const testReportService = {
   getAll: async (params) => { const { data } = await api.get('/test-reports', { params }); return data.data },
   getMine: async () => { const { data } = await api.get('/test-reports/mine'); return data.data },
@@ -79,23 +88,21 @@ export const paymentService = {
   getMyPayments: async () => { const { data } = await api.get('/payments/my'); return data.data },
 
   // Offline (admin)
-  create: async (formData) => {
-    const { data } = await api.post('/payments', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  create: async (payload) => {
+    const { data } = await api.post('/payments', payload)
     return data.data
   },
-  update: async (id, formData) => {
-    const { data } = await api.put(`/payments/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-    return data.data
-  },
-  verify: async (id) => { const { data } = await api.put(`/payments/${id}/verify`); return data.data },
   delete: async (id) => { const { data } = await api.delete(`/payments/${id}`); return data },
 
   // Online (student — Razorpay)
   createOnlineOrder: async (payload) => { const { data } = await api.post('/payments/online/order', payload); return data.data },
   verifyOnlinePayment: async (payload) => { const { data } = await api.post('/payments/online/verify', payload); return data.data },
 
-  // Receipt download URL
+  // Receipt download URL & trigger
   receiptUrl: (id) => `${import.meta.env.VITE_API_BASE_URL || '/api'}/payments/${id}/receipt`,
+  downloadReceipt: async (id, receiptNo) => {
+    await downloadFile(`/payments/${id}/receipt`, `receipt-${receiptNo || id}.pdf`, 'Failed to download receipt PDF')
+  },
 }
 
 export const feeService = {
@@ -130,9 +137,11 @@ export const materialService = {
     const { data } = await api.post('/materials', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     return data.data
   },
-  download: async (id, fileName) => {
-    await downloadFile(`/materials/${id}/download`, fileName, 'Could not download this material.')
+  update: async (id, formData) => {
+    const { data } = await api.put(`/materials/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    return data.data
   },
+  viewUrl: (id) => `${import.meta.env.VITE_API_BASE_URL || '/api'}/materials/${id}/view`,
   delete: async (id) => { const { data } = await api.delete(`/materials/${id}`); return data },
 }
 
@@ -140,14 +149,15 @@ export const contactService = {
   submit: async (payload) => { const { data } = await api.post('/contact', payload); return data },
   getAll: async (params) => { const { data } = await api.get('/contact', { params }); return data.data },
   updateStatus: async (id, status) => { const { data } = await api.put(`/contact/${id}`, { status }); return data.data },
+  enroll: async (id, payload) => { const { data } = await api.post(`/contact/${id}/enroll`, payload); return data.data },
 }
 
 export const adminService = {
-  getDashboard: async () => { const { data } = await api.get('/admin/dashboard'); return data.data },
-  getTeachers: async (params) => { const { data } = await api.get('/admin/teachers', { params }); return data.data },
-  createTeacher: async (payload) => { const { data } = await api.post('/admin/teachers', payload); return data.data },
-  updateTeacher: async (id, payload) => { const { data } = await api.put(`/admin/teachers/${id}`, payload); return data.data },
-  deleteTeacher: async (id) => { const { data } = await api.delete(`/admin/teachers/${id}`); return data },
+  getDashboard: async (month) => {
+    const params = month ? { month } : {}
+    const { data } = await api.get('/admin/dashboard', { params })
+    return data.data
+  },
   getReports: async (params) => { const { data } = await api.get('/admin/reports', { params }); return data.data },
   getAuditLogs: async (params) => { const { data } = await api.get('/admin/audit-logs', { params }); return data.data },
 }

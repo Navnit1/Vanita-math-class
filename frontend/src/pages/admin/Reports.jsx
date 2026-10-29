@@ -115,7 +115,7 @@ export default function Reports() {
                     <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false}
                       tickFormatter={v => `₹${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} />
                     <Tooltip formatter={v => formatCurrency(v)} contentStyle={{ border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }} />
-                    <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue" fill="#E50914" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import {
-  createPayment, getAllPayments, getPaymentById, verifyPayment,
-  updatePayment, deletePayment, getMyPayments, getPaymentStats,
+  createPayment, getAllPayments, getPaymentById,
+  deletePayment, getMyPayments, getPaymentStats,
   createOnlineOrder, verifyOnlinePayment, downloadReceipt,
 } from '../controllers/paymentController.js'
 import { protect, authorize } from '../middleware/auth.js'
@@ -13,7 +13,7 @@ router.use(protect)
 // Stats & listing
 router.get('/stats', authorize('admin'), getPaymentStats)
 router.get('/my', authorize('student'), getMyPayments)
-router.get('/', authorize('admin', 'teacher'), getAllPayments)
+router.get('/', authorize('admin'), getAllPayments)
 
 // Online payment (student)
 router.post('/online/order', authorize('student'), createOnlineOrder)
@@ -25,10 +25,8 @@ router.post('/', authorize('admin'), uploadReceipt.single('receiptImage'), creat
 // Receipt download (student + admin)
 router.get('/:id/receipt', authorize('admin', 'student'), downloadReceipt)
 
-// Admin CRUD
-router.get('/:id', authorize('admin'), getPaymentById)
-router.put('/:id/verify', authorize('admin'), verifyPayment)
-router.put('/:id', authorize('admin'), uploadReceipt.single('receiptImage'), updatePayment)
+// Admin details & delete
+router.get('/:id', authorize('admin', 'student'), getPaymentById)
 router.delete('/:id', authorize('admin'), deletePayment)
 
 export default router

@@ -13,63 +13,99 @@ import toast from 'react-hot-toast'
 const schema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   content: z.string().min(10, 'Content must be at least 10 characters'),
-  audience: z.string().min(1, 'Select audience'),
   priority: z.string().min(1, 'Select priority'),
   class: z.string().optional(),
   expiresAt: z.string().optional(),
 })
 
-const CLASSES = [ '8th', '9th', '10th','11th', '12th' ]
-const PRIORITY_COLORS = { high: 'red', medium: 'yellow', low: 'slate' }
-const AUDIENCE_COLORS = { all: 'blue', students: 'green', teachers: 'purple', admin: 'slate' }
+const CLASSES = ['8th', '9th', '10th', '+1', '+2']
 
 function AnnouncementForm({ ann, onSave, onCancel, loading }) {
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: ann ? {
-      title: ann.title, content: ann.content, audience: ann.audience,
-      priority: ann.priority, class: ann.class || '', expiresAt: ann.expiresAt ? ann.expiresAt.split('T')[0] : '',
-    } : { audience: 'all', priority: 'medium', class: '' },
+    defaultValues: ann
+      ? {
+          title: ann.title,
+          content: ann.content,
+          priority: ann.priority,
+          class: ann.class || '',
+          expiresAt: ann.expiresAt ? ann.expiresAt.split('T')[0] : '',
+        }
+      : { priority: 'medium', class: '' },
   })
 
+  const onSubmit = (data) => {
+    // General announcements default to active students
+    onSave({
+      ...data,
+      audience: 'students',
+    })
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSave)} className="p-6 space-y-4">
-      <FormField label="Title" error={errors.title?.message} required>
-        <input {...register('title')} className={`input ${errors.title ? 'input-error' : ''}`} placeholder="Announcement title" />
+    <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+      <FormField label="Notice Title" error={errors.title?.message} required>
+        <input
+          {...register('title')}
+          className={`input ${errors.title ? 'input-error' : ''}`}
+          placeholder="e.g. Extra Class on Sunday / Holiday Notice"
+        />
       </FormField>
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="Audience" error={errors.audience?.message} required>
-          <Select {...register('audience')}>
-            <option value="all">Everyone</option>
-            <option value="students">Students only</option>
-            <option value="teachers">Teachers only</option>
-            <option value="admin">Admin only</option>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField label="Target Standard / Class" hint="Leave blank to broadcast to all students">
+          <Select {...register('class')}>
+            <option value="">All Standards (8th to +2)</option>
+            {CLASSES.map((c) => (
+              <option key={c} value={c}>
+                Class {c}
+              </option>
+            ))}
           </Select>
         </FormField>
-        <FormField label="Priority" error={errors.priority?.message} required>
+
+        <FormField label="Priority Level" error={errors.priority?.message} required>
           <Select {...register('priority')}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
+            <option value="low">Low (General Info)</option>
+            <option value="medium">Medium (Standard Notice)</option>
+            <option value="high">High (Urgent / Exam / Fees)</option>
           </Select>
         </FormField>
       </div>
-      <FormField label="Standard" hint="Leave blank to show to all standards (only applies when audience includes students)">
-        <Select {...register('class')}>
-          <option value="">All standards</option>
-          {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-        </Select>
+
+      <FormField label="Notice Content" error={errors.content?.message} required>
+        <textarea
+          {...register('content')}
+          className={`input resize-none ${errors.content ? 'input-error' : ''}`}
+          rows={5}
+          placeholder="Write the full announcement message for students…"
+        />
       </FormField>
-      <FormField label="Content" error={errors.content?.message} required>
-        <textarea {...register('content')} className={`input resize-none ${errors.content ? 'input-error' : ''}`} rows={5} placeholder="Write the announcement content…" />
+
+      <FormField label="Expiry Date (optional)" hint="Leave blank to keep active on the board">
+        <input
+          {...register('expiresAt')}
+          type="date"
+          className="input"
+          min={new Date().toISOString().split('T')[0]}
+        />
       </FormField>
-      <FormField label="Expires At (optional)" hint="Leave blank to keep active indefinitely">
-        <input {...register('expiresAt')} type="date" className="input" min={new Date().toISOString().split('T')[0]} />
-      </FormField>
+
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="btn btn-secondary">Cancel</button>
+        <button type="button" onClick={onCancel} className="btn btn-secondary">
+          Cancel
+        </button>
         <button type="submit" disabled={loading} className="btn btn-primary">
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" />{ann ? 'Updating…' : 'Publishing…'}</> : ann ? 'Update' : 'Publish'}
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {ann ? 'Updating…' : 'Publishing…'}
+            </>
+          ) : ann ? (
+            'Update Notice'
+          ) : (
+            'Publish Notice'
+          )}
         </button>
       </div>
     </form>
@@ -89,76 +125,150 @@ export default function AnnouncementsAdmin() {
 
   const createMutation = useMutation({
     mutationFn: announcementService.create,
-    onSuccess: () => { qc.invalidateQueries(['announcements']); setModalOpen(false); toast.success('Announcement published') },
-    onError: err => toast.error(err.response?.data?.message || 'Failed'),
+    onSuccess: () => {
+      qc.invalidateQueries(['announcements'])
+      setModalOpen(false)
+      toast.success('Notice published to student notice board')
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => announcementService.update(id, data),
-    onSuccess: () => { qc.invalidateQueries(['announcements']); setModalOpen(false); setEditing(null); toast.success('Announcement updated') },
-    onError: err => toast.error(err.response?.data?.message || 'Failed'),
+    onSuccess: () => {
+      qc.invalidateQueries(['announcements'])
+      setModalOpen(false)
+      setEditing(null)
+      toast.success('Notice updated successfully')
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: announcementService.delete,
-    onSuccess: () => { qc.invalidateQueries(['announcements']); setDeleteTarget(null); toast.success('Announcement deleted') },
-    onError: err => toast.error(err.response?.data?.message || 'Failed'),
+    onSuccess: () => {
+      qc.invalidateQueries(['announcements'])
+      setDeleteTarget(null)
+      toast.success('Notice removed')
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   })
 
   const announcements = data?.announcements || []
 
   return (
     <Sidebar>
-      <div className="page-header flex items-center justify-between">
+      <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Announcements</h1>
-          <p className="page-subtitle">{announcements.length} active announcements</p>
+          <h1 className="page-title">Announcements & Notices</h1>
+          <p className="page-subtitle">Publish updates, holiday alerts, and schedule changes for students</p>
         </div>
-        <button onClick={() => { setEditing(null); setModalOpen(true) }} className="btn btn-primary">
+        <button
+          onClick={() => {
+            setEditing(null)
+            setModalOpen(true)
+          }}
+          className="btn btn-primary self-start sm:self-auto"
+        >
           <Plus className="w-4 h-4" /> New Announcement
         </button>
       </div>
 
-      {isLoading ? <PageLoader /> : announcements.length === 0 ? (
-        <div className="card"><EmptyState icon={Bell} title="No announcements" description="Create your first announcement for students and teachers" /></div>
-      ) : (
-        <div className="space-y-3">
-          {announcements.map(a => (
-            <div key={a._id} className={cn('card p-5 border-l-4', a.priority === 'high' ? 'border-l-red-400' : a.priority === 'medium' ? 'border-l-yellow-400' : 'border-l-slate-300')}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap gap-2 items-center mb-2">
-                    {a.priority === 'high' && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
-                    <h3 className="font-semibold text-slate-900 text-sm">{a.title}</h3>
-                    <Badge variant={AUDIENCE_COLORS[a.audience] || 'blue'}>
-                      {a.audience === 'all' ? 'Everyone' : a.audience}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {isLoading ? (
+          <PageLoader />
+        ) : announcements.length === 0 ? (
+          <EmptyState
+            icon={Bell}
+            title="No announcements published"
+            description="Create notices for your students. They will immediately see them in their portal."
+          />
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {announcements.map((a) => (
+              <div
+                key={a._id}
+                className={cn(
+                  'p-5 transition-colors hover:bg-gray-50/50 flex flex-col sm:flex-row sm:items-start justify-between gap-4',
+                  a.priority === 'high' && 'border-l-4 border-l-primary-600 bg-red-50/20'
+                )}
+              >
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                    {a.priority === 'high' && (
+                      <AlertCircle className="w-4 h-4 text-primary-600 shrink-0" />
+                    )}
+                    <h3 className="font-bold text-gray-900 text-base">{a.title}</h3>
+                    {a.class ? (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary-50 text-primary-700 border border-primary-200">
+                        Class {a.class}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                        All Classes
+                      </span>
+                    )}
+                    <Badge
+                      variant={
+                        a.priority === 'high' ? 'danger' : a.priority === 'medium' ? 'warning' : 'slate'
+                      }
+                    >
+                      {a.priority}
                     </Badge>
-                    {a.class && <Badge variant="blue">Std {a.class}</Badge>}
-                    <Badge variant={PRIORITY_COLORS[a.priority] || 'slate'}>{a.priority}</Badge>
                   </div>
-                  <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">{a.content}</p>
-                  <div className="flex gap-4 mt-3 text-xs text-slate-400">
-                    <span>By {a.createdBy?.name}</span>
-                    <span>{formatDateTime(a.createdAt)}</span>
-                    {a.expiresAt && <span>Expires {formatDateTime(a.expiresAt)}</span>}
-                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line mt-1">
+                    {a.content}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-3">
+                    Posted on {formatDateTime(a.createdAt)} · By {a.createdBy?.name || 'Vanita Rani Gupta'}
+                  </p>
                 </div>
-                <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => { setEditing(a); setModalOpen(true) }} className="btn btn-ghost btn-sm p-1.5"><Pencil className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => setDeleteTarget(a)} className="btn btn-ghost btn-sm p-1.5 text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+
+                <div className="flex items-center gap-1 self-end sm:self-start">
+                  <button
+                    onClick={() => {
+                      setEditing(a)
+                      setModalOpen(true)
+                    }}
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                    title="Edit announcement"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(a)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-red-50 transition-colors"
+                    title="Delete announcement"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
-      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Edit Announcement' : 'New Announcement'} size="lg">
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false)
+          setEditing(null)
+        }}
+        title={editing ? 'Edit Announcement' : 'Publish Announcement'}
+        size="lg"
+      >
         <AnnouncementForm
           ann={editing}
           loading={createMutation.isPending || updateMutation.isPending}
-          onCancel={() => { setModalOpen(false); setEditing(null) }}
-          onSave={data => editing ? updateMutation.mutate({ id: editing._id, data }) : createMutation.mutate(data)}
+          onCancel={() => {
+            setModalOpen(false)
+            setEditing(null)
+          }}
+          onSave={(data) => {
+            if (editing) updateMutation.mutate({ id: editing._id, data })
+            else createMutation.mutate(data)
+          }}
         />
       </Modal>
 
@@ -168,7 +278,7 @@ export default function AnnouncementsAdmin() {
         onConfirm={() => deleteMutation.mutate(deleteTarget._id)}
         loading={deleteMutation.isPending}
         title="Delete Announcement"
-        message={`Delete "${deleteTarget?.title}"? This cannot be undone.`}
+        message={`Delete "${deleteTarget?.title}"? Students will no longer see this notice.`}
         confirmText="Delete"
         danger
       />

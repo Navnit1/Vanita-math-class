@@ -58,7 +58,6 @@ export function AuthProvider({ children }) {
       user, loading,
       isAuthenticated: !!user,
       isAdmin: user?.role === 'admin',
-      isTeacher: user?.role === 'teacher',
       isStudent: user?.role === 'student',
       mustChangePassword: !!user?.mustChangePassword,
       login, logout, updateUser,

@@ -4,7 +4,7 @@ import { GraduationCap } from 'lucide-react'
 
 export default function NotFoundPage() {
   const { user, isAuthenticated } = useAuth()
-  const home = isAuthenticated ? (user?.role === 'admin' ? '/admin' : user?.role === 'teacher' ? '/teacher' : '/dashboard') : '/login'
+  const home = isAuthenticated ? (user?.role === 'admin' ? '/admin' : '/dashboard') : '/'
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">

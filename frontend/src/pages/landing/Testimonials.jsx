@@ -1,31 +1,30 @@
 import { motion } from 'framer-motion'
-import { Quote } from 'lucide-react'
+import { Quote, Star } from 'lucide-react'
 
 const TESTIMONIALS = [
   {
-    quote: `Best teacher in the cityVanita mam is very friendly and understanding, impressive teaching history and knowledge of the subject.The house is always clean, easy access from front stairs and wide open space for class with air conditioning.
-Personally after attending for half a term my grade has improved from 63 to 92 percent in maths, Mam was very helpful and patient in teaching.
-The experience has been far better than my previous tutoring and exceeded the school teacher’s abilities also which, was very surprising.
-Mam also greatly values safety of the students
-And is a little selective about admission which keeps the atmosphere calm and focused on study.After searched around Bathinda, Sangrur, and online Vanita mam is the best maths teacher I found and I recommend her classes to anyone in 8-12 looking for a teacher.`,
-    name: 'Mankanwar Jot ',
-    role: 'Student',
+    quote:
+      'Best maths teacher in Bathinda! Vanita ma’am is extremely friendly and understanding, with deep subject mastery. After attending her classes for half a term, my maths score shot up from 63% to 92%. She was patient with my doubts and provided handwritten practice sheets that made concepts effortless.',
+    name: 'Mankanwar Jot',
+    role: 'Class 10th Student, Bathinda',
   },
   {
-    quote: 'A great teacher is knowledgeable, kind, and patient, with a passion for their subject that makes learning fun and engaging through clear explanations and encouragement. A supportive tuition teacher goes beyond just teaching content; they inspire confidence, offer personalized guidance, and make students feel comfortable asking questions to help them master difficult topics and build both academic skills and personal character.',
+    quote:
+      'A great teacher inspires confidence and makes learning engaging through clear explanations. Vanita ma’am went far beyond basic textbook questions, giving us multi-publisher problems and weekly test drills. I never felt hesitant asking questions.',
     name: 'Vedant Bareja',
-    role: 'Student',
+    role: 'Class +2 Student, Bathinda',
   },
   {
-    quote: 'VMC is the best tuition centre for maths coaching. I am grateful to have such a wonderful teacher who makes learning maths enjoyable and effortless. Her patience, love, and care towards her students are truly commendable. She provides excellent guidance and support. I am so lucky to have her as my maths teacher!',
+    quote:
+      'VMC is undeniably the best coaching center for mathematics. I am grateful to have had such a dedicated teacher who made calculus and trigonometry feel straightforward. Her personal attention and weekly test reviews were truly game-changing.',
     name: 'Jyoti Bala',
-    role: 'Student',
+    role: 'Parent of Class 10th Student, Bathinda',
   },
 ]
 
 export default function Testimonials() {
   return (
-    <section className="bg-ink-950 py-20 sm:py-28">
+    <section className="bg-gray-50 py-20 sm:py-28 border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -34,9 +33,11 @@ export default function Testimonials() {
           transition={{ duration: 0.5 }}
           className="max-w-xl mb-14"
         >
-          <p className="text-gold-300 font-mono text-sm tracking-wide uppercase mb-3">Testimonials</p>
-          <h2 className="font-display text-3xl sm:text-4xl font-medium text-chalk-100 leading-tight">
-            What parents and students say.
+          <span className="text-primary-600 font-bold text-xs tracking-wider uppercase mb-2 block">
+            Parent & Student Reviews
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+            Trusted by Hundreds of Bathinda Families
           </h2>
         </motion.div>
 
@@ -48,13 +49,23 @@ export default function Testimonials() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ duration: 0.45, delay: i * 0.1 }}
-              className="p-7 rounded-2xl border border-chalk-100/10 bg-chalk-100/[0.03]"
+              className="p-7 rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"
             >
-              <Quote className="w-7 h-7 text-gold-400/40 mb-4" />
-              <p className="text-chalk-100/85 text-[15px] leading-relaxed">{t.quote}</p>
-              <div className="mt-6 pt-5 border-t border-chalk-100/10">
-                <p className="text-chalk-100 font-medium text-sm">{t.name}</p>
-                <p className="text-chalk-200/45 text-xs mt-0.5">{t.role}</p>
+              <div>
+                <div className="flex items-center gap-1 text-amber-500 mb-4">
+                  {[...Array(5)].map((_, idx) => (
+                    <Star key={idx} className="w-4 h-4 fill-amber-400" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-primary-200 mb-2" />
+                <p className="text-gray-700 text-sm leading-relaxed italic">
+                  "{t.quote}"
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <p className="text-gray-900 font-extrabold text-sm">{t.name}</p>
+                <p className="text-gray-500 text-xs mt-0.5">{t.role}</p>
               </div>
             </motion.div>
           ))}

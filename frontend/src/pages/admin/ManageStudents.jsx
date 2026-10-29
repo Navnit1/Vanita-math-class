@@ -1,32 +1,41 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Sidebar from '@/components/layout/Sidebar'
-import { PageLoader, SearchInput, Modal, ConfirmDialog, FormField, Select, Badge, Pagination, EmptyState, Avatar } from '@/components/ui'
-import { studentService } from '@/services'
-import { Plus, Pencil, Trash2, Users, Loader2, Copy, Printer, Download, CheckCircle2, KeyRound, CreditCard, UserCheck } from 'lucide-react'
+import {
+  PageLoader, SearchInput, Modal, ConfirmDialog, FormField, Select,
+  Badge, Pagination, EmptyState, Avatar
+} from '@/components/ui'
+import { studentService, paymentService } from '@/services'
+import { formatCurrency, formatDate, feeStatusBadge, cn } from '@/lib/utils'
+import {
+  Plus, Pencil, Trash2, Users, Loader2, Copy, Download,
+  CheckCircle2, KeyRound, CreditCard, UserCheck, ShieldAlert,
+  Power, Check, Phone, Eye, Calendar, Clock
+} from 'lucide-react'
 import toast from 'react-hot-toast'
-import StudentIdCard from '@/components/shared/StudentIdCard'
 
-const CLASSES = [ '8th', '9th', '10th','11th', '12th' ]
-const BATCHES = ['Morning', 'Evening', 'Weekend']
-const SECTIONS = ['A', 'B', 'C', '']
+const CLASSES = ['8th', '9th', '10th', '+1', '+2']
+const BATCHES = ['Evening', 'Morning', 'Weekend']
 const FEE_PLANS = ['monthly', 'quarterly', 'yearly']
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Enter a valid email').optional().or(z.literal('')),
-  phone: z.string().min(10, 'Enter a valid phone number'),
-  class: z.string().min(1, 'Select standard'),
-  section: z.string().optional(),
+  phone: z.string().min(10, 'Enter a valid 10-digit mobile number'),
+  class: z.string().min(1, 'Select class / standard'),
   batch: z.string().min(1, 'Select batch'),
+  school: z.string().optional(),
   academicYear: z.string().min(4, 'Enter academic year'),
   admissionDate: z.string().optional(),
   parentName: z.string().min(2, 'Parent name is required'),
   parentPhone: z.string().min(10, 'Enter parent phone number'),
+  monthlyFee: z.coerce.number().min(0),
   totalFee: z.coerce.number().min(0),
+  discount: z.coerce.number().min(0).optional(),
   feePlan: z.string().min(1),
   course: z.string().optional(),
   address: z.string().optional(),
@@ -36,379 +45,686 @@ function StudentForm({ student, onSave, onCancel, loading }) {
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: student ? {
-      name: student.fullName, email: student.email, phone: student.phone,
-      class: student.class, section: student.section, batch: student.batch,
-      academicYear: student.academicYear, parentName: student.parentName,
-      parentPhone: student.parentPhone, totalFee: student.totalFee,
+      name: student.fullName,
+      email: student.email,
+      phone: student.phone,
+      class: student.class,
+      batch: student.batch,
+      school: student.school || '',
+      academicYear: student.academicYear,
+      parentName: student.parentName,
+      parentPhone: student.parentPhone,
+      monthlyFee: student.monthlyFee || 0,
+      totalFee: student.totalFee || 0,
+      discount: student.discount || 0,
       feePlan: student.feePlan || 'monthly',
-      course: student.course, address: student.address,
-    } : { totalFee: 0, feePlan: 'monthly', academicYear: String(new Date().getFullYear()) },
+      course: student.course || 'Mathematics',
+      address: student.address || '',
+      admissionDate: student.admissionDate ? new Date(student.admissionDate).toISOString().slice(0, 10) : '',
+    } : {
+      class: '10th',
+      batch: 'Evening',
+      monthlyFee: 2500,
+      totalFee: 25000,
+      discount: 0,
+      feePlan: 'monthly',
+      academicYear: String(new Date().getFullYear()),
+      admissionDate: new Date().toISOString().slice(0, 10),
+      course: 'Mathematics',
+    },
   })
 
   return (
     <form onSubmit={handleSubmit(onSave)} className="p-6 space-y-4">
       {!student && (
-        <div className="bg-primary-50 border border-primary-200 text-primary-800 text-sm px-4 py-3 rounded-lg flex items-start gap-2.5">
+        <div className="bg-[#FFF5F5] border border-[#FFCCD0] text-[#C90019] text-xs p-3.5 rounded-xl flex items-start gap-2.5 font-medium">
           <KeyRound className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>A Student ID, username, and temporary password will be generated automatically. The student must change this password on first login.</span>
+          <span>
+            A unique Roll Number (Student ID), username, and temporary password will be created automatically. The student will be required to set a new password on their first login.
+          </span>
         </div>
       )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField label="Full Name" error={errors.name?.message} required>
-          <input {...register('name')} className={`input ${errors.name ? 'input-error' : ''}`} placeholder="Student full name" />
+        <FormField label="Student Full Name" error={errors.name?.message} required>
+          <input {...register('name')} className={`input ${errors.name ? 'input-error' : ''}`} placeholder="e.g. Jaspreet Singh" />
         </FormField>
-        <FormField label="Email" error={errors.email?.message} hint="Optional — leave blank if the student has none">
-          <input {...register('email')} type="email" className={`input ${errors.email ? 'input-error' : ''}`} placeholder="Email address (optional)" />
+
+        <FormField label="Email" error={errors.email?.message} hint="Optional — for OTP password recovery">
+          <input {...register('email')} type="email" className={`input ${errors.email ? 'input-error' : ''}`} placeholder="student@example.com" />
         </FormField>
-        <FormField label="Phone" error={errors.phone?.message} required>
-          <input {...register('phone')} className={`input ${errors.phone ? 'input-error' : ''}`} placeholder="Mobile number" />
+
+        <FormField label="Student Mobile" error={errors.phone?.message} required>
+          <input {...register('phone')} className={`input ${errors.phone ? 'input-error' : ''}`} placeholder="10-digit mobile number" />
         </FormField>
-        <FormField label="Standard" error={errors.class?.message} required>
+
+        <FormField label="Class / Standard" error={errors.class?.message} required>
           <Select {...register('class')} className={errors.class ? 'input-error' : ''}>
-            <option value="">Select standard</option>
-            {CLASSES.map(c => <option key={c}>{c}</option>)}
+            {CLASSES.map(c => <option key={c} value={c}>Class {c}</option>)}
           </Select>
         </FormField>
-        <FormField label="Section" error={errors.section?.message}>
-          <Select {...register('section')}>
-            <option value="">No section</option>
-            {SECTIONS.filter(Boolean).map(s => <option key={s}>{s}</option>)}
-          </Select>
-        </FormField>
-        <FormField label="Batch" error={errors.batch?.message} required>
+
+        <FormField label="Batch Timing" error={errors.batch?.message} required>
           <Select {...register('batch')} className={errors.batch ? 'input-error' : ''}>
-            <option value="">Select batch</option>
-            {BATCHES.map(b => <option key={b}>{b}</option>)}
+            {BATCHES.map(b => <option key={b} value={b}>{b} Batch</option>)}
           </Select>
         </FormField>
-        <FormField label="Academic Year" error={errors.academicYear?.message} required>
-          <input {...register('academicYear')} className={`input ${errors.academicYear ? 'input-error' : ''}`} placeholder="2026" />
+
+        <FormField label="School Name" error={errors.school?.message}>
+          <input {...register('school')} className="input" placeholder="e.g. St. Joseph Convent School" />
         </FormField>
+
+        <FormField label="Parent / Guardian Name" error={errors.parentName?.message} required>
+          <input {...register('parentName')} className={`input ${errors.parentName ? 'input-error' : ''}`} placeholder="Parent full name" />
+        </FormField>
+
+        <FormField label="Parent Phone" error={errors.parentPhone?.message} required>
+          <input {...register('parentPhone')} className={`input ${errors.parentPhone ? 'input-error' : ''}`} placeholder="Parent mobile number" />
+        </FormField>
+
+        <FormField label="Monthly Tuition Fee (₹)" error={errors.monthlyFee?.message} required>
+          <input {...register('monthlyFee')} type="number" min="0" className="input" />
+        </FormField>
+
+        <FormField label="Total Academic Year Fee (₹)" error={errors.totalFee?.message} required>
+          <input {...register('totalFee')} type="number" min="0" className="input" />
+        </FormField>
+
+        <FormField label="Scholarship / Discount (₹)" error={errors.discount?.message}>
+          <input {...register('discount')} type="number" min="0" className="input" />
+        </FormField>
+
         <FormField label="Admission Date" error={errors.admissionDate?.message}>
           <input {...register('admissionDate')} type="date" className="input" />
         </FormField>
-        <FormField label="Course" error={errors.course?.message}>
-          <input {...register('course')} className="input" placeholder="e.g. Foundation Mathematics" />
-        </FormField>
-        <FormField label="Parent / Guardian Name" error={errors.parentName?.message} required>
-          <input {...register('parentName')} className={`input ${errors.parentName ? 'input-error' : ''}`} placeholder="Parent / guardian name" />
-        </FormField>
-        <FormField label="Parent Phone" error={errors.parentPhone?.message} required>
-          <input {...register('parentPhone')} className={`input ${errors.parentPhone ? 'input-error' : ''}`} placeholder="Parent phone number" />
-        </FormField>
-        <FormField label="Fee Plan" error={errors.feePlan?.message} required>
-          <Select {...register('feePlan')}>
-            {FEE_PLANS.map(p => <option key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</option>)}
-          </Select>
-        </FormField>
-        <FormField label="Total Fee (₹)" error={errors.totalFee?.message} required>
-          <input {...register('totalFee')} type="number" className="input" placeholder="e.g. 36000" />
-        </FormField>
-        <FormField label="Address" error={errors.address?.message} className="sm:col-span-2">
-          <textarea {...register('address')} className="input resize-none" rows={2} placeholder="Home address (optional)" />
-        </FormField>
       </div>
-      <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="btn btn-secondary">Cancel</button>
-        <button type="submit" disabled={loading} className="btn btn-primary">
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</> : (student ? 'Update Student' : 'Add Student')}
+
+      <FormField label="Address / Locality (Bathinda)">
+        <input {...register('address')} className="input" placeholder="e.g. #302, Phase-II, Vishal Nagar, Bathinda" />
+      </FormField>
+
+      <div className="flex gap-3 justify-end pt-4 border-t border-[#D9DDE3]">
+        <button type="button" onClick={onCancel} className="btn btn-secondary btn-sm">Cancel</button>
+        <button type="submit" disabled={loading} className="btn btn-primary btn-sm font-semibold shadow-red-glow">
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-1" />Saving…</> : student ? 'Update Student' : 'Enroll Student'}
         </button>
       </div>
     </form>
   )
 }
 
-function CredentialsModal({ credentials, student, onClose }) {
-  const printRef = useRef(null)
-  if (!credentials) return null
-
-  const copyAll = () => {
-    const text = `Vanita Math Classes — Student Login Credentials\n\nStudent: ${student?.fullName}\nStudent ID: ${credentials.studentId}\nUsername: ${credentials.username}\nTemporary Password: ${credentials.password}\n\nPlease change this password on first login.`
-    navigator.clipboard.writeText(text)
-    toast.success('Credentials copied to clipboard')
-  }
-
-  const downloadTxt = () => {
-    const text = `Vanita Math Classes — Student Login Credentials\n\nStudent: ${student?.fullName}\nStudent ID: ${credentials.studentId}\nUsername: ${credentials.username}\nTemporary Password: ${credentials.password}\n\nPlease change this password on first login.`
-    const blob = new Blob([text], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${credentials.studentId}-credentials.txt`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const printCard = () => {
-    const w = window.open('', '_blank', 'width=500,height=400')
-    w.document.write(`
-      <html><head><title>Student Credentials</title>
-      <style>
-        body { font-family: -apple-system, sans-serif; padding: 32px; }
-        h2 { margin: 0 0 4px; }
-        .sub { color: #64748b; font-size: 13px; margin-bottom: 24px; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
-        td:first-child { color: #64748b; font-size: 13px; width: 160px; }
-        td:last-child { font-family: monospace; font-size: 15px; font-weight: 600; }
-        .note { margin-top: 20px; font-size: 12px; color: #94a3b8; }
-      </style></head><body>
-        <h2>Vanita Math Classes</h2>
-        <p class="sub">Student Login Credentials</p>
-        <table>
-          <tr><td>Student Name</td><td>${student?.fullName || ''}</td></tr>
-          <tr><td>Student ID</td><td>${credentials.studentId}</td></tr>
-          <tr><td>Username</td><td>${credentials.username}</td></tr>
-          <tr><td>Temporary Password</td><td>${credentials.password}</td></tr>
-        </table>
-        <p class="note">Login with your Student ID, username, or email. You will be asked to set a new password on first login.</p>
-      </body></html>
-    `)
-    w.document.close()
-    w.print()
-  }
-
-  return (
-    <Modal isOpen={!!credentials} onClose={onClose} title="Student account created" size="md">
-      <div className="p-6">
-        <div className="flex items-center gap-2.5 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-5 text-sm">
-          <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
-          <span>{student?.fullName}'s account is ready. Share these credentials securely — they won't be shown again.</span>
-        </div>
-
-        <div ref={printRef} className="space-y-3 bg-slate-50 rounded-xl p-5 border border-slate-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">Student ID</span>
-            <span className="font-mono font-semibold text-slate-900">{credentials.studentId}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">Username</span>
-            <span className="font-mono font-semibold text-slate-900">{credentials.username}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">Temporary Password</span>
-            <span className="font-mono font-semibold text-slate-900">{credentials.password}</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 mt-5">
-          <button onClick={copyAll} className="btn btn-secondary justify-center text-sm"><Copy className="w-3.5 h-3.5" />Copy</button>
-          <button onClick={printCard} className="btn btn-secondary justify-center text-sm"><Printer className="w-3.5 h-3.5" />Print</button>
-          <button onClick={downloadTxt} className="btn btn-secondary justify-center text-sm"><Download className="w-3.5 h-3.5" />Download</button>
-        </div>
-
-        <button onClick={onClose} className="btn btn-primary w-full mt-4">Done</button>
-      </div>
-    </Modal>
-  )
-}
-
 export default function ManageStudents() {
-  const qc = useQueryClient()
-  const [search, setSearch] = useState('')
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [page, setPage] = useState(1)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [filterBatch, setFilterBatch] = useState('')
-  const [filterClass, setFilterClass] = useState('')
-  const [filterStatus, setFilterStatus] = useState('active')
-  const [newCredentials, setNewCredentials] = useState(null)
-  const [newStudent, setNewStudent] = useState(null)
-  const [idCardTarget, setIdCardTarget] = useState(null)
+  const [search, setSearch] = useState('')
+  const [selectedClass, setSelectedClass] = useState(searchParams.get('class') || '')
+  const [selectedBatch, setSelectedBatch] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('active')
+  const [selectedFeeStatus, setSelectedFeeStatus] = useState('')
+
+  const [modalOpen, setModalOpen] = useState(searchParams.get('action') === 'new')
+  const [editingStudent, setEditingStudent] = useState(null)
+  const [viewingStudent, setViewingStudent] = useState(null)
+  const [credentialsModal, setCredentialsModal] = useState(null)
+  const [copied, setCopied] = useState(false)
+  const [deactivateTarget, setDeactivateTarget] = useState(null)
+
+  // Direct Quick Payment Modal
+  const [recordFeeTarget, setRecordFeeTarget] = useState(null)
+  const [feeAmount, setFeeAmount] = useState('')
+  const [feeMethod, setFeeMethod] = useState('cash')
+
+  const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['students', page, search, filterBatch, filterClass, filterStatus],
-    queryFn: () => studentService.getAll({ page, limit: 15, search: search || undefined, batch: filterBatch || undefined, class: filterClass || undefined, status: filterStatus || undefined }),
-    placeholderData: (prev) => prev,
+    queryKey: ['students', page, search, selectedClass, selectedBatch, selectedStatus, selectedFeeStatus],
+    queryFn: () => studentService.getAll({
+      page,
+      limit: 15,
+      search: search || undefined,
+      class: selectedClass || undefined,
+      batch: selectedBatch || undefined,
+      status: selectedStatus || undefined,
+      feeStatus: selectedFeeStatus || undefined,
+    }),
   })
 
+  // Mutations
   const createMutation = useMutation({
     mutationFn: studentService.create,
-    onSuccess: (result) => {
+    onSuccess: (res) => {
       qc.invalidateQueries(['students'])
+      qc.invalidateQueries(['admin-dashboard'])
       setModalOpen(false)
-      toast.success('Student added')
-      if (result?.credentials) {
-        setNewCredentials(result.credentials)
-        setNewStudent(result.student)
-      }
+      if (res.credentials) setCredentialsModal(res.credentials)
+      toast.success('Student enrolled successfully!')
     },
-    onError: err => toast.error(err.response?.data?.message || 'Failed to add student'),
+    onError: err => toast.error(err.response?.data?.message || 'Failed to create student'),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => studentService.update(id, data),
-    onSuccess: () => { qc.invalidateQueries(['students']); setModalOpen(false); setEditing(null); toast.success('Student updated') },
+    onSuccess: () => {
+      qc.invalidateQueries(['students'])
+      qc.invalidateQueries(['admin-dashboard'])
+      setEditingStudent(null)
+      toast.success('Student updated successfully!')
+    },
     onError: err => toast.error(err.response?.data?.message || 'Failed to update student'),
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: studentService.delete,
-    onSuccess: () => { qc.invalidateQueries(['students']); setDeleteTarget(null); toast.success('Student deactivated') },
-    onError: err => toast.error(err.response?.data?.message || 'Failed'),
+  const toggleStatusMutation = useMutation({
+    mutationFn: studentService.toggleStatus,
+    onSuccess: (res) => {
+      qc.invalidateQueries(['students'])
+      qc.invalidateQueries(['admin-dashboard'])
+      setDeactivateTarget(null)
+      toast.success(res.message || 'Student status updated!')
+    },
+    onError: err => toast.error(err.response?.data?.message || 'Failed to update status'),
   })
 
-  const approveMutation = useMutation({
-    mutationFn: studentService.approve,
-    onSuccess: () => { qc.invalidateQueries(['students']); toast.success('Student approved — they can now log in') },
-    onError: err => toast.error(err.response?.data?.message || 'Failed to approve student'),
+  const resetPasswordMutation = useMutation({
+    mutationFn: studentService.adminResetPassword,
+    onSuccess: (res) => {
+      setCredentialsModal(res.data)
+      toast.success('Temporary password generated!')
+    },
+    onError: err => toast.error(err.response?.data?.message || 'Failed to reset password'),
   })
+
+  const recordFeeMutation = useMutation({
+    mutationFn: paymentService.create,
+    onSuccess: (res) => {
+      qc.invalidateQueries(['students'])
+      qc.invalidateQueries(['admin-dashboard'])
+      setRecordFeeTarget(null)
+      setFeeAmount('')
+      toast.success(`Fee payment recorded! Receipt: ${res.receiptNumber}`)
+    },
+    onError: err => toast.error(err.response?.data?.message || 'Failed to record fee'),
+  })
+
+  const handleExportCsv = async () => {
+    try {
+      toast.loading('Generating student CSV…', { id: 'csv-export' })
+      await studentService.exportCsv({
+        class: selectedClass || undefined,
+        batch: selectedBatch || undefined,
+        status: selectedStatus || undefined,
+      })
+      toast.success('Students directory CSV downloaded!', { id: 'csv-export' })
+    } catch {
+      toast.error('Failed to export CSV', { id: 'csv-export' })
+    }
+  }
+
+  const copyCreds = (creds) => {
+    const text = `Vanita Math Classes Login Credentials\nRoll Number: ${creds.studentId}\nUsername: ${creds.username}\nTemporary Password: ${creds.password || creds.temporaryPassword}\nPortal: ${window.location.origin}/login`
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    toast.success('Credentials copied to clipboard')
+    setTimeout(() => setCopied(false), 2500)
+  }
 
   const students = data?.students || []
   const total = data?.total || 0
   const pages = data?.pages || 1
-  const pendingCount = students.filter(s => s.accountStatus === 'pending').length
 
   return (
     <Sidebar>
-      <div className="page-header flex items-center justify-between">
+      {/* Page Header */}
+      <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Students</h1>
-          <p className="page-subtitle">{total} students total</p>
+          <h1 className="page-title">Student Directory</h1>
+          <p className="page-subtitle">
+            {total} enrolled students. Manage profiles, track fees, and handle admissions.
+          </p>
         </div>
-        <button onClick={() => { setEditing(null); setModalOpen(true) }} className="btn btn-primary">
-          <Plus className="w-4 h-4" /> Add Student
-        </button>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={handleExportCsv}
+            className="btn btn-secondary btn-sm flex items-center gap-1.5 font-semibold text-xs"
+            title="Export student directory to CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-[#E50914]" />
+            Export CSV
+          </button>
+
+          <button
+            onClick={() => setModalOpen(true)}
+            className="btn btn-primary btn-sm flex items-center gap-1.5 font-semibold text-xs shadow-red-glow"
+          >
+            <Plus className="w-4 h-4" />
+            Add New Student
+          </button>
+        </div>
       </div>
 
-      {pendingCount > 0 && (
-        <div className="mb-4 flex items-center gap-2.5 text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
-          <UserCheck className="w-4.5 h-4.5 shrink-0" />
-          <span>{pendingCount} student{pendingCount > 1 ? 's' : ''} self-registered and {pendingCount > 1 ? 'are' : 'is'} waiting for approval — they can't log in until you approve them below.</span>
+      {/* Filter & Search Bar */}
+      <div className="card p-4 mb-5 flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[200px]">
+          <SearchInput
+            value={search}
+            onChange={v => { setSearch(v); setPage(1) }}
+            placeholder="Search by name, roll no, phone, parent…"
+          />
+        </div>
+
+        <Select
+          value={selectedClass}
+          onChange={e => { setSelectedClass(e.target.value); setPage(1) }}
+          className="w-36 text-xs"
+        >
+          <option value="">All Standards</option>
+          {CLASSES.map(c => <option key={c} value={c}>Class {c}</option>)}
+        </Select>
+
+        <Select
+          value={selectedBatch}
+          onChange={e => { setSelectedBatch(e.target.value); setPage(1) }}
+          className="w-36 text-xs"
+        >
+          <option value="">All Batches</option>
+          {BATCHES.map(b => <option key={b} value={b}>{b} Batch</option>)}
+        </Select>
+
+        <Select
+          value={selectedFeeStatus}
+          onChange={e => { setSelectedFeeStatus(e.target.value); setPage(1) }}
+          className="w-36 text-xs"
+        >
+          <option value="">All Fee Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="partial">Partial</option>
+          <option value="paid">Fully Paid</option>
+          <option value="overdue">Overdue</option>
+        </Select>
+
+        <Select
+          value={selectedStatus}
+          onChange={e => { setSelectedStatus(e.target.value); setPage(1) }}
+          className="w-32 text-xs"
+        >
+          <option value="">All Status</option>
+          <option value="active">Active Only</option>
+          <option value="inactive">Deactivated</option>
+        </Select>
+      </div>
+
+      {/* Students Directory Table */}
+      {isLoading ? (
+        <PageLoader />
+      ) : students.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No students found"
+          description="Try adjusting your search criteria or add a new student using the button above."
+        />
+      ) : (
+        <div className="table-container">
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Roll No / Student</th>
+                  <th>Class & Batch</th>
+                  <th>Parent Contact</th>
+                  <th>Monthly Fee</th>
+                  <th>Fee Dues</th>
+                  <th>Status</th>
+                  <th>Admission Date</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map(s => {
+                  const pendingBalance = Math.max(0, (s.totalFee || 0) - (s.paidFee || 0))
+                  const isActive = s.status === 'active'
+
+                  return (
+                    <tr key={s._id} className={cn(!isActive && 'opacity-60 bg-[#FAFAFA]')}>
+                      {/* Student info */}
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <Avatar name={s.fullName} src={s.profilePhoto} size="sm" />
+                          <div className="min-w-0">
+                            <p className="font-bold text-[#171717] leading-tight truncate">
+                              {s.fullName}
+                            </p>
+                            <p className="font-mono text-xs font-semibold text-[#E50914] mt-0.5">
+                              {s.studentId}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Class & Batch */}
+                      <td>
+                        <Badge variant="primary">Class {s.class}</Badge>
+                        <p className="text-xs text-[#64748B] mt-0.5">{s.batch} Batch</p>
+                      </td>
+
+                      {/* Parent Contact */}
+                      <td>
+                        <p className="text-xs font-medium text-[#171717]">{s.parentName || '—'}</p>
+                        <a
+                          href={`tel:${s.parentPhone || s.phone}`}
+                          className="text-xs text-[#E50914] hover:underline flex items-center gap-1 mt-0.5"
+                        >
+                          <Phone className="w-3 h-3" />
+                          {s.parentPhone || s.phone || '—'}
+                        </a>
+                      </td>
+
+                      {/* Monthly Fee */}
+                      <td>
+                        <span className="font-semibold text-xs text-[#171717]">
+                          {formatCurrency(s.monthlyFee || 0)}
+                        </span>
+                        <p className="text-[10px] text-[#64748B]">per month</p>
+                      </td>
+
+                      {/* Dues & Status */}
+                      <td>
+                        <Badge variant={feeStatusBadge(s.feeStatus)} className="capitalize">
+                          {s.feeStatus || 'pending'}
+                        </Badge>
+                        {pendingBalance > 0 ? (
+                          <p className="text-xs font-bold text-[#C90019] mt-0.5">
+                            Due: {formatCurrency(pendingBalance)}
+                          </p>
+                        ) : (
+                          <p className="text-[10px] font-semibold text-[#059669] mt-0.5">Cleared</p>
+                        )}
+                      </td>
+
+                      {/* Active Status */}
+                      <td>
+                        <Badge variant={isActive ? 'green' : 'slate'}>
+                          {isActive ? 'Active' : 'Deactivated'}
+                        </Badge>
+                      </td>
+
+                      {/* Admission Date */}
+                      <td className="text-xs text-[#64748B]">
+                        {formatDate(s.admissionDate)}
+                      </td>
+
+                      {/* Actions */}
+                      <td>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* View details */}
+                          <button
+                            onClick={() => setViewingStudent(s)}
+                            className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#F3F4F6] hover:text-[#171717]"
+                            title="View student profile"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+
+                          {/* Record Fee Shortcut */}
+                          <button
+                            onClick={() => {
+                              setRecordFeeTarget(s)
+                              setFeeAmount(pendingBalance > 0 ? String(s.monthlyFee || pendingBalance) : '2500')
+                            }}
+                            className="p-1.5 rounded-lg text-[#059669] hover:bg-emerald-50 hover:text-emerald-700"
+                            title="Record fee payment"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                          </button>
+
+                          {/* Edit */}
+                          <button
+                            onClick={() => setEditingStudent(s)}
+                            className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#F3F4F6] hover:text-[#171717]"
+                            title="Edit student"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+
+                          {/* Admin Password Reset */}
+                          <button
+                            onClick={() => resetPasswordMutation.mutate(s._id)}
+                            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50"
+                            title="Reset student password"
+                          >
+                            <KeyRound className="w-4 h-4" />
+                          </button>
+
+                          {/* Deactivate / Reactivate (Preserves records) */}
+                          <button
+                            onClick={() => setDeactivateTarget(s)}
+                            className={cn(
+                              'p-1.5 rounded-lg transition-colors',
+                              isActive
+                                ? 'text-[#C90019] hover:bg-[#FFF5F5]'
+                                : 'text-[#059669] hover:bg-emerald-50'
+                            )}
+                            title={isActive ? 'Deactivate student (preserve records)' : 'Reactivate student'}
+                          >
+                            <Power className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination page={page} pages={pages} onPage={p => setPage(p)} />
         </div>
       )}
 
-      {/* Filters */}
-      <div className="card p-4 mb-4 flex flex-wrap gap-3">
-        <SearchInput value={search} onChange={v => { setSearch(v); setPage(1) }} placeholder="Search by name, ID, username, email…" className="flex-1 min-w-48" />
-        <Select value={filterClass} onChange={e => { setFilterClass(e.target.value); setPage(1) }} className="w-36">
-          <option value="">All Standards</option>
-          {CLASSES.map(c => <option key={c}>{c}</option>)}
-        </Select>
-        <Select value={filterBatch} onChange={e => { setFilterBatch(e.target.value); setPage(1) }} className="w-40">
-          <option value="">All Batches</option>
-          {BATCHES.map(b => <option key={b}>{b}</option>)}
-        </Select>
-        <Select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }} className="w-36">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </Select>
-      </div>
-
-      {/* Table */}
-      <div className="table-container">
-        {isLoading ? <PageLoader /> : students.length === 0 ? (
-          <EmptyState icon={Users} title="No students found" description="Add a student or adjust your filters" />
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Standard / Batch</th>
-                <th>Parent</th>
-                <th>Fee Status</th>
-                <th>Progress</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map(s => (
-                <tr key={s._id}>
-                  <td>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar name={s.fullName} size="sm" />
-                      <div>
-                        <p className="font-medium text-slate-900 text-sm flex items-center gap-1.5">
-                          {s.fullName}
-                          {s.accountStatus === 'pending' && <Badge variant="yellow">Pending approval</Badge>}
-                         {s.status === 'inactive' && <Badge variant="slate">Deactivated</Badge>}
-                        </p>
-                        <p className="text-xs text-slate-500">{s.studentId}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <p className="text-sm text-slate-800">{s.class}{s.section ? ` - ${s.section}` : ''}</p>
-                    <p className="text-xs text-slate-500">{s.batch} batch</p>
-                  </td>
-                  <td>
-                    <p className="text-sm text-slate-700">{s.parentName || '—'}</p>
-                    <p className="text-xs text-slate-500">{s.parentPhone || ''}</p>
-                  </td>
-                  <td>
-                    <Badge variant={s.feeStatus === 'paid' ? 'green' : s.feeStatus === 'partial' ? 'yellow' : s.feeStatus === 'overdue' ? 'red' : 'slate'}>
-                      {s.feeStatus}
-                    </Badge>
-                  </td>
-                  <td>
-                    <div className="w-28">
-                      <div className="flex justify-between text-xs text-slate-500 mb-1">
-                        <span>{Math.round((s.paidFee / (s.totalFee || 1)) * 100)}%</span>
-                        <span>{s.paidFee}/{s.totalFee}</span>
-                      </div>
-                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary-600 rounded-full" style={{ width: `${Math.min(100, (s.paidFee / (s.totalFee || 1)) * 100)}%` }} />
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-1">
-                      {s.accountStatus === 'pending' && (
-                        <button
-                          onClick={() => approveMutation.mutate(s._id)}
-                          disabled={approveMutation.isPending}
-                          className="btn btn-ghost btn-sm p-1.5 text-green-600 hover:text-green-700"
-                          title="Approve — let this student log in"
-                        >
-                          <UserCheck className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <button onClick={() => setIdCardTarget(s)} className="btn btn-ghost btn-sm p-1.5 text-indigo-500 hover:text-indigo-700" title="Generate ID Card"><CreditCard className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => { setEditing(s); setModalOpen(true) }} className="btn btn-ghost btn-sm p-1.5"><Pencil className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setDeleteTarget(s)} className="btn btn-ghost btn-sm p-1.5 text-red-500 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <Pagination page={page} pages={pages} onPage={setPage} />
-      </div>
-
-      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Edit Student' : 'Add New Student'} size="lg">
+      {/* CREATE STUDENT MODAL */}
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Enroll New Student" size="lg">
         <StudentForm
-          student={editing}
-          loading={createMutation.isPending || updateMutation.isPending}
-          onCancel={() => { setModalOpen(false); setEditing(null) }}
-          onSave={data => editing ? updateMutation.mutate({ id: editing._id, data }) : createMutation.mutate(data)}
+          onSave={data => createMutation.mutate(data)}
+          onCancel={() => setModalOpen(false)}
+          loading={createMutation.isPending}
         />
       </Modal>
 
-      <CredentialsModal
-        credentials={newCredentials}
-        student={newStudent}
-        onClose={() => { setNewCredentials(null); setNewStudent(null) }}
-      />
+      {/* EDIT STUDENT MODAL */}
+      <Modal isOpen={!!editingStudent} onClose={() => setEditingStudent(null)} title="Edit Student Profile" size="lg">
+        {editingStudent && (
+          <StudentForm
+            student={editingStudent}
+            onSave={data => updateMutation.mutate({ id: editingStudent._id, data })}
+            onCancel={() => setEditingStudent(null)}
+            loading={updateMutation.isPending}
+          />
+        )}
+      </Modal>
 
-      <StudentIdCard
-        student={idCardTarget}
-        isOpen={!!idCardTarget}
-        onClose={() => setIdCardTarget(null)}
-      />
+      {/* VIEW STUDENT PROFILE MODAL */}
+      <Modal isOpen={!!viewingStudent} onClose={() => setViewingStudent(null)} title="Student Profile" size="md">
+        {viewingStudent && (
+          <div className="p-6 space-y-4">
+            <div className="flex items-center gap-3 pb-4 border-b border-[#D9DDE3]">
+              <Avatar name={viewingStudent.fullName} src={viewingStudent.profilePhoto} size="lg" />
+              <div>
+                <h3 className="font-extrabold text-base text-[#171717]">{viewingStudent.fullName}</h3>
+                <p className="font-mono text-xs font-bold text-[#E50914]">{viewingStudent.studentId}</p>
+                <p className="text-xs text-[#64748B]">Class {viewingStudent.class} · {viewingStudent.batch} Batch</p>
+              </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-[#FAFAFA] border border-[#D9DDE3] rounded-lg">
+                <span className="text-[#64748B] block">Parent Name:</span>
+                <span className="font-bold text-[#171717]">{viewingStudent.parentName || '—'}</span>
+              </div>
+              <div className="p-3 bg-[#FAFAFA] border border-[#D9DDE3] rounded-lg">
+                <span className="text-[#64748B] block">Parent Phone:</span>
+                <a href={`tel:${viewingStudent.parentPhone}`} className="font-bold text-[#E50914] hover:underline">
+                  {viewingStudent.parentPhone || '—'}
+                </a>
+              </div>
+              <div className="p-3 bg-[#FAFAFA] border border-[#D9DDE3] rounded-lg">
+                <span className="text-[#64748B] block">Monthly Tuition Fee:</span>
+                <span className="font-bold text-[#171717]">{formatCurrency(viewingStudent.monthlyFee || 0)}</span>
+              </div>
+              <div className="p-3 bg-[#FAFAFA] border border-[#D9DDE3] rounded-lg">
+                <span className="text-[#64748B] block">Outstanding Balance:</span>
+                <span className="font-bold text-[#C90019]">
+                  {formatCurrency(Math.max(0, (viewingStudent.totalFee || 0) - (viewingStudent.paidFee || 0)))}
+                </span>
+              </div>
+            </div>
+
+            {viewingStudent.school && (
+              <p className="text-xs text-[#64748B]">
+                School: <strong className="text-[#171717]">{viewingStudent.school}</strong>
+              </p>
+            )}
+
+            {viewingStudent.address && (
+              <p className="text-xs text-[#64748B]">
+                Address: <strong className="text-[#171717]">{viewingStudent.address}</strong>
+              </p>
+            )}
+
+            <div className="flex gap-2 justify-end pt-3 border-t border-[#D9DDE3]">
+              <button onClick={() => setViewingStudent(null)} className="btn btn-secondary btn-sm">Close</button>
+              <button
+                onClick={() => {
+                  setEditingStudent(viewingStudent)
+                  setViewingStudent(null)
+                }}
+                className="btn btn-primary btn-sm"
+              >
+                Edit Details
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* DEACTIVATE / REACTIVATE CONFIRMATION (PRESERVES HISTORICAL RECORDS) */}
       <ConfirmDialog
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteMutation.mutate(deleteTarget._id)}
-        loading={deleteMutation.isPending}
-        title="Deactivate Student"
-        message={`Are you sure you want to deactivate ${deleteTarget?.fullName}? They will lose access to their account.`}
-        confirmText="Deactivate"
-        danger
+        isOpen={!!deactivateTarget}
+        onClose={() => setDeactivateTarget(null)}
+        onConfirm={() => toggleStatusMutation.mutate(deactivateTarget._id)}
+        title={deactivateTarget?.status === 'active' ? 'Deactivate Student Account?' : 'Reactivate Student Account?'}
+        message={
+          deactivateTarget?.status === 'active'
+            ? `Are you sure you want to deactivate ${deactivateTarget?.fullName}? All historical fee payments, attendance, and weekly test results will be SAFELY PRESERVED in the database. The student will not be able to log in while deactivated.`
+            : `Reactivate ${deactivateTarget?.fullName}? The student will be restored to active status and permitted to log in.`
+        }
+        confirmText={deactivateTarget?.status === 'active' ? 'Deactivate Student' : 'Reactivate Student'}
+        danger={deactivateTarget?.status === 'active'}
+        loading={toggleStatusMutation.isPending}
       />
+
+      {/* QUICK RECORD FEE MODAL */}
+      <Modal
+        isOpen={!!recordFeeTarget}
+        onClose={() => setRecordFeeTarget(null)}
+        title={`Record Tuition Fee: ${recordFeeTarget?.fullName}`}
+        size="sm"
+      >
+        <div className="p-6 space-y-4">
+          <div className="p-3 bg-[#FAFAFA] border border-[#D9DDE3] rounded-xl text-xs space-y-1">
+            <p>Roll No: <strong>{recordFeeTarget?.studentId}</strong></p>
+            <p>Class: <strong>Class {recordFeeTarget?.class} ({recordFeeTarget?.batch})</strong></p>
+            <p>
+              Pending Dues:{' '}
+              <strong className="text-[#C90019]">
+                {formatCurrency(Math.max(0, (recordFeeTarget?.totalFee || 0) - (recordFeeTarget?.paidFee || 0)))}
+              </strong>
+            </p>
+          </div>
+
+          <FormField label="Amount to Record (₹)" required>
+            <input
+              type="number"
+              min="1"
+              value={feeAmount}
+              onChange={e => setFeeAmount(e.target.value)}
+              className="input font-bold text-base text-[#171717]"
+              autoFocus
+            />
+          </FormField>
+
+          <FormField label="Payment Method" required>
+            <Select value={feeMethod} onChange={e => setFeeMethod(e.target.value)}>
+              <option value="cash">Cash Payment</option>
+              <option value="upi">UPI (GPay / PhonePe / Paytm)</option>
+              <option value="bank_transfer">Bank Transfer / NEFT</option>
+              <option value="cheque">Cheque</option>
+            </Select>
+          </FormField>
+
+          <div className="flex gap-3 justify-end pt-3 border-t border-[#D9DDE3]">
+            <button onClick={() => setRecordFeeTarget(null)} className="btn btn-secondary btn-sm">Cancel</button>
+            <button
+              onClick={() => {
+                if (!feeAmount || Number(feeAmount) < 1) {
+                  toast.error('Please enter a valid amount')
+                  return
+                }
+                recordFeeMutation.mutate({
+                  studentId: recordFeeTarget._id,
+                  amount: Number(feeAmount),
+                  paymentMethod: feeMethod,
+                  month: new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' }),
+                })
+              }}
+              disabled={recordFeeMutation.isPending}
+              className="btn btn-primary btn-sm font-semibold shadow-red-glow"
+            >
+              {recordFeeMutation.isPending ? 'Recording…' : 'Record & Generate Receipt'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* CREDENTIALS SUCCESS MODAL */}
+      <Modal isOpen={!!credentialsModal} onClose={() => setCredentialsModal(null)} title="Student Credentials" size="sm">
+        <div className="p-6 space-y-4">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center mx-auto mb-2 text-[#059669]">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <h3 className="font-extrabold text-[#171717]">Credentials Ready</h3>
+            <p className="text-xs text-[#64748B] mt-0.5">Please share these details with the student.</p>
+          </div>
+
+          <div className="bg-[#F3F4F6] border border-[#D9DDE3] rounded-xl p-3.5 space-y-2 text-xs font-mono">
+            <div className="flex justify-between py-1 border-b border-[#D9DDE3]">
+              <span className="text-[#64748B]">Roll No:</span>
+              <strong className="text-[#171717]">{credentialsModal?.studentId}</strong>
+            </div>
+            <div className="flex justify-between py-1 border-b border-[#D9DDE3]">
+              <span className="text-[#64748B]">Username:</span>
+              <strong className="text-[#171717]">{credentialsModal?.username}</strong>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-[#64748B]">Password:</span>
+              <strong className="text-[#C90019]">{credentialsModal?.password || credentialsModal?.temporaryPassword}</strong>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => copyCreds(credentialsModal)}
+              className="btn btn-primary flex-1 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copied ? 'Copied' : 'Copy Credentials'}
+            </button>
+            <button onClick={() => setCredentialsModal(null)} className="btn btn-secondary btn-sm text-xs">
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
     </Sidebar>
   )
 }

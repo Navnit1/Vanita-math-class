@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,46 +10,50 @@
   html { scroll-behavior: smooth; }
 
   body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background-color: #f8fafc;
-    color: #1f3f89;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #FAFAFA;
+    color: #171717;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
 
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: #f1f5f9; }
-  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #F3F4F6; }
+  ::-webkit-scrollbar-thumb { background: #D9DDE3; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 }
 
 @layer components {
   .card {
-    @apply bg-white border border-slate-200 rounded-xl shadow-card;
+    @apply bg-white border border-[#D9DDE3] rounded-xl shadow-card;
   }
 
   .card-hover {
-    @apply card transition-shadow duration-200 hover:shadow-card-md;
+    @apply card transition-all duration-200 hover:shadow-card-md hover:border-primary-300;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-800;
+    @apply btn bg-[#E50914] text-white hover:bg-[#C90019] focus:ring-[#E50914] shadow-sm active:bg-[#A50014];
   }
 
   .btn-secondary {
-    @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-300;
+    @apply btn bg-white text-[#171717] border border-[#D9DDE3] hover:bg-[#F3F4F6] focus:ring-slate-300;
   }
 
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+    @apply btn bg-[#C90019] text-white hover:bg-[#A50014] focus:ring-red-500;
+  }
+
+  .btn-success {
+    @apply btn bg-[#059669] text-white hover:bg-emerald-700 focus:ring-emerald-500;
   }
 
   .btn-ghost {
-    @apply btn text-slate-600 hover:bg-slate-100 focus:ring-slate-300;
+    @apply btn text-[#64748B] hover:bg-[#F3F4F6] hover:text-[#171717] focus:ring-slate-300;
   }
 
   .btn-sm {
@@ -61,61 +65,61 @@
   }
 
   .input {
-    @apply w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors;
+    @apply w-full px-3.5 py-2.5 text-sm border border-[#D9DDE3] rounded-lg bg-white text-[#171717] placeholder:text-[#64748B]/60 focus:outline-none focus:ring-2 focus:ring-[#E50914] focus:border-[#E50914] transition-colors;
   }
 
   .input-error {
-    @apply border-red-400 focus:ring-red-400 focus:border-red-400;
+    @apply border-red-500 focus:ring-red-500 focus:border-red-500;
   }
 
   .label {
-    @apply block text-sm font-medium text-slate-700 mb-1.5;
+    @apply block text-sm font-medium text-[#171717] mb-1.5;
   }
 
   .error-msg {
-    @apply text-xs text-red-500 mt-1;
+    @apply text-xs text-[#C90019] mt-1 font-medium;
   }
 
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide;
   }
 
-  .badge-green { @apply badge bg-green-100 text-green-700; }
-  .badge-red { @apply badge bg-red-100 text-red-700; }
-  .badge-yellow { @apply badge bg-yellow-100 text-yellow-700; }
-  .badge-blue { @apply badge bg-blue-100 text-blue-700; }
-  .badge-slate { @apply badge bg-slate-100 text-slate-600; }
+  .badge-green { @apply badge bg-emerald-50 text-[#059669] border border-emerald-200; }
+  .badge-red { @apply badge bg-red-50 text-[#C90019] border border-red-200; }
+  .badge-yellow { @apply badge bg-amber-50 text-[#F59E0B] border border-amber-200; }
+  .badge-slate { @apply badge bg-[#F3F4F6] text-[#64748B] border border-[#D9DDE3]; }
+  .badge-primary { @apply badge bg-[#FFF5F5] text-[#C90019] border border-[#FFCCD0]; }
 
   .page-header {
     @apply mb-6;
   }
 
   .page-title {
-    @apply text-xl font-semibold text-slate-900;
+    @apply text-2xl font-bold text-[#171717] tracking-tight;
   }
 
   .page-subtitle {
-    @apply text-sm text-slate-500 mt-0.5;
+    @apply text-sm text-[#64748B] mt-1;
   }
 
   .stat-card {
-    @apply card p-5;
+    @apply card p-5 relative overflow-hidden;
   }
 
   .table-container {
-    @apply card overflow-hidden;
+    @apply card overflow-hidden border border-[#D9DDE3];
   }
 
   .table {
-    @apply w-full text-sm;
+    @apply w-full text-sm text-left;
   }
 
   .table thead th {
-    @apply px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50;
+    @apply px-4 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider border-b border-[#D9DDE3] bg-[#F3F4F6];
   }
 
   .table tbody td {
-    @apply px-4 py-3.5 text-slate-700 border-b border-slate-50;
+    @apply px-4 py-3.5 text-[#171717] border-b border-[#F3F4F6];
   }
 
   .table tbody tr:last-child td {
@@ -123,52 +127,14 @@
   }
 
   .table tbody tr:hover td {
-    @apply bg-slate-50;
+    @apply bg-red-50/20;
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-150;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#64748B] hover:bg-[#F3F4F6] hover:text-[#171717] transition-all duration-150;
   }
 
   .sidebar-link.active {
-    @apply bg-primary-50 text-primary-700 hover:bg-primary-50 hover:text-primary-700;
-  }
-}
-
-/* ─── Landing page light theme override ───
-   The landing page defaults to a dark "chalkboard" identity (bg-ink-950).
-   Toggling to light theme swaps the dark sections to the chalk surface
-   while keeping the gold/mark accents, so the brand identity holds in both modes. */
-@layer utilities {
-  .landing-light .bg-ink-950 {
-    background-color: #FBF9F3;
-  }
-  .landing-light .bg-ink-900 {
-    background-color: #F3EFE2;
-  }
-  .landing-light .text-chalk-100,
-  .landing-light .text-chalk-100\/90,
-  .landing-light .text-chalk-100\/85 {
-    color: #112e5b;
-  }
-  .landing-light .text-chalk-200\/80,
-  .landing-light .text-chalk-200\/70,
-  .landing-light .text-chalk-200\/60,
-  .landing-light .text-chalk-200\/55,
-  .landing-light .text-chalk-200\/50,
-  .landing-light .text-chalk-200\/45,
-  .landing-light .text-chalk-200\/40,
-  .landing-light .text-chalk-200\/35 {
-    color: #3D5A80;
-  }
-  .landing-light .border-chalk-100\/10,
-  .landing-light .border-chalk-100\/15,
-  .landing-light .border-chalk-100\/20,
-  .landing-light .border-chalk-100\/25 {
-    border-color: rgba(11, 29, 58, 0.12);
-  }
-  .landing-light .bg-chalk-100\/\[0\.03\],
-  .landing-light .bg-chalk-100\/\[0\.05\] {
-    background-color: rgba(11, 29, 58, 0.035);
+    @apply bg-[#FFF5F5] text-[#C90019] font-semibold hover:bg-[#FFF5F5] hover:text-[#C90019];
   }
 }

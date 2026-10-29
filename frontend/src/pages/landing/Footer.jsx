@@ -1,80 +1,125 @@
 import { Link } from 'react-router-dom'
-import { Instagram, Facebook, Youtube } from 'lucide-react'
+import { Instagram, Facebook, Phone, MapPin, Mail, Shield, UserCheck } from 'lucide-react'
+import logo from '../../images/fab.jpeg'
 
 const COLUMNS = [
   {
     title: 'Institute',
     links: [
-      { label: 'About Us', href: '#about' },
-      { label: 'Faculty', href: '#faculty' },
-      { label: 'Gallery', href: '#gallery' },
-      { label: 'Results', href: '#results' },
+      { label: 'About VMC', href: '#about' },
+      { label: 'Faculty Profile', href: '#faculty' },
+      { label: 'Achievers & Results', href: '#results' },
+      { label: 'Classroom Gallery', href: '#gallery' },
+      { label: 'FAQs', href: '#faq' },
     ],
   },
   {
-  title: 'Courses',
-  links: [
-    { label: '8th – 9th Foundation', href: '#courses' },
-    { label: '10th – 12th Board Prep', href: '#courses' },
-    // { label: '11th – 12th Board Exam', href: '#courses' },
-  ],
-},
-  {
-    title: 'Account',
+    title: 'Standards & Batches',
     links: [
-      { label: 'Student Login', to: '/login' },
-      { label: 'Student Sign Up', to: '/register' },
-      { label: 'Admin Login', to: '/admin-login' },
+      { label: 'Class 8th Mathematics', href: '#courses' },
+      { label: 'Class 9th Mathematics', href: '#courses' },
+      { label: 'Class 10th Board Exam', href: '#courses' },
+      { label: 'Class +1 Mathematics', href: '#courses' },
+      { label: 'Class +2 Board Prep', href: '#courses' },
+    ],
+  },
+  {
+    title: 'Portals & Enquiries',
+    links: [
+      { label: 'Student Portal Login', to: '/login' },
+      { label: 'New Student Registration', to: '/register' },
+      { label: 'Admin Portal Login', to: '/admin-login' },
+      { label: 'Submit Admission Enquiry', href: '#contact' },
     ],
   },
 ]
 
 export default function Footer() {
-  const scrollTo = (href) => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
+  const scrollTo = (href) => {
+    const el = document.querySelector(href)
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  }
 
   return (
-    <footer className="bg-ink-950 border-t border-chalk-100/10 pt-16 pb-8">
+    <footer className="bg-gray-900 text-gray-300 pt-16 pb-10 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-10 pb-12">
-          <div className="lg:col-span-2">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-gold-400/15 border border-gold-400/40 flex items-center justify-center overflow-hidden">
-                <img src="/fab2.jpeg" alt="Vanita Maths Classes logo" className="w-6 h-6 object-contain" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12">
+          {/* Brand Info */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden shrink-0">
+                <img
+                  src={logo}
+                  alt="Vanita Math Classes"
+                  className="w-10 h-10 object-contain"
+                />
               </div>
-              <span className="font-display font-semibold text-chalk-100 text-lg">Vanita Math Classes</span>
+              <span className="font-extrabold text-white text-lg tracking-tight">
+                VANITA <span className="text-primary-500">MATH CLASSES</span>
+              </span>
             </div>
-            <p className="text-chalk-200/50 text-sm leading-relaxed max-w-xs">
-              Coaching for standards 8th to 12th, focused on understanding maths — not memorizing it.
+
+            <p className="text-gray-400 text-xs sm:text-sm leading-relaxed max-w-sm">
+              Premier mathematics coaching institute for 8th, 9th, 10th, +1, and +2 students in Bathinda, Punjab. Guided by Mrs. Vanita Rani Gupta (M.Sc., M.Phil., B.Ed., 17+ years experience).
             </p>
-            <div className="flex items-center gap-3 mt-5">
-              {[
-                { icon: Instagram, href: 'https://www.instagram.com/vanitamathclasses?igsh=MTFhOHB0aW1rZHkwZQ==' },
-                { icon: Facebook, href: 'https://www.facebook.com/VMCTuitions/' },
-                { icon: Youtube, href: '#' },
-              ].map(({ icon: Icon, href }, i) => (
-                <a
-                  key={i}
-                  href={href}
-                  target={href !== '#' ? '_blank' : undefined}
-                  rel={href !== '#' ? 'noopener noreferrer' : undefined}
-                  className="w-9 h-9 rounded-full border border-chalk-100/15 flex items-center justify-center text-chalk-200/60 hover:text-gold-300 hover:border-gold-400/40 transition-colors"
-                >
-                  <Icon className="w-4 h-4" />
+
+            <div className="space-y-2 text-xs text-gray-400 pt-1">
+              <p className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary-500 shrink-0" />
+                #302, Phase-II, Vishal Nagar, Bathinda, Punjab
+              </p>
+              <p className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-primary-500 shrink-0" />
+                <a href="tel:+919815962612" className="hover:text-white transition-colors">
+                  +91 98159-62612
                 </a>
-              ))}
+              </p>
+            </div>
+
+            {/* Socials */}
+            <div className="flex items-center gap-3 pt-2">
+              <a
+                href="https://www.instagram.com/vanitamathclasses"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-primary-600 transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a
+                href="https://www.facebook.com/VMCTuitions/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-primary-600 transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-4 h-4" />
+              </a>
             </div>
           </div>
 
-          {COLUMNS.map(col => (
+          {/* Nav Columns */}
+          {COLUMNS.map((col) => (
             <div key={col.title}>
-              <p className="text-chalk-100 font-medium text-sm mb-4">{col.title}</p>
+              <p className="text-white font-bold text-sm mb-4 tracking-wide">{col.title}</p>
               <ul className="space-y-2.5">
-                {col.links.map(l => (
+                {col.links.map((l) => (
                   <li key={l.label}>
                     {l.to ? (
-                      <Link to={l.to} className="text-chalk-200/50 text-sm hover:text-gold-300 transition-colors">{l.label}</Link>
+                      <Link
+                        to={l.to}
+                        className="text-gray-400 text-xs hover:text-white transition-colors"
+                      >
+                        {l.label}
+                      </Link>
                     ) : (
-                      <button onClick={() => scrollTo(l.href)} className="text-chalk-200/50 text-sm hover:text-gold-300 transition-colors text-left">{l.label}</button>
+                      <button
+                        onClick={() => scrollTo(l.href)}
+                        className="text-gray-400 text-xs hover:text-white transition-colors text-left"
+                      >
+                        {l.label}
+                      </button>
                     )}
                   </li>
                 ))}
@@ -83,9 +128,13 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="pt-7 border-t border-chalk-100/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-chalk-200/35 text-xs">© {new Date().getFullYear()} Vanita Math Classes. All rights reserved.</p>
-          <p className="text-chalk-200/35 text-xs">Vishal Nagar, Bathinda, Punjab</p>
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-gray-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+          <p>© {new Date().getFullYear()} Vanita Math Classes (VMC). All rights reserved.</p>
+          <p className="flex items-center gap-4">
+            <span>Faculty: Vanita Rani Gupta (M.Sc., M.Phil., B.Ed.)</span>
+            <span>Bathinda, Punjab</span>
+          </p>
         </div>
       </div>
     </footer>

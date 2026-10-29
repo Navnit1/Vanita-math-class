@@ -5,19 +5,40 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Sidebar from '@/components/layout/Sidebar'
 import {
-  PageLoader, SearchInput, Modal, ConfirmDialog, FormField,
-  Select, Badge, Pagination, EmptyState, StatCard, SectionCard,
+  PageLoader,
+  Modal,
+  ConfirmDialog,
+  FormField,
+  Select,
+  Badge,
+  Pagination,
+  EmptyState,
+  StatCard,
 } from '@/components/ui'
 import { feeService, studentService, announcementService } from '@/services'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, Trash2, DollarSign, AlertCircle, CheckCircle, Clock, Loader2, Users, Bell } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  DollarSign,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Loader2,
+  Users,
+  Bell,
+  MessageSquare,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
 const CURRENT_YEAR = new Date().getFullYear()
 const FEE_TYPES = ['monthly', 'quarterly', 'annual', 'registration', 'exam', 'other']
 const BATCHES = ['Morning', 'Evening', 'Weekend']
-const CLASSES = [ '8th', '9th', '10th','11th', '12th' ]
+const CLASSES = ['8th', '9th', '10th', '+1', '+2']
 
 const singleSchema = z.object({
   studentId: z.string().min(1, 'Select a student'),
@@ -40,7 +61,9 @@ const bulkSchema = z.object({
 
 function AddFeeForm({ onSave, onCancel, loading, mode }) {
   const schema = mode === 'bulk' ? bulkSchema : singleSchema
-  const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) })
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(schema),
+  })
 
   const { data: studentData } = useQuery({
     queryKey: ['students-dropdown'],
@@ -52,7 +75,7 @@ function AddFeeForm({ onSave, onCancel, loading, mode }) {
   return (
     <form onSubmit={handleSubmit(onSave)} className="p-6 space-y-4">
       {mode === 'bulk' && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm px-4 py-3 rounded-lg">
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 text-sm px-4 py-3 rounded-lg">
           Bulk fee will be created for all <strong>active students</strong> matching the selected batch/class. Leave blank to target all active students.
         </div>
       )}
@@ -62,7 +85,11 @@ function AddFeeForm({ onSave, onCancel, loading, mode }) {
           <FormField label="Student" error={errors.studentId?.message} required className="sm:col-span-2">
             <Select {...register('studentId')} className={errors.studentId ? 'input-error' : ''}>
               <option value="">Select student</option>
-              {students.map(s => <option key={s._id} value={s._id}>{s.fullName} ({s.studentId}) — {s.class}, {s.batch}</option>)}
+              {students.map((s) => (
+                <option key={s._id} value={s._id}>
+                  {s.fullName} ({s.studentId}) — Class {s.class}, {s.batch}
+                </option>
+              ))}
             </Select>
           </FormField>
         )}
@@ -72,13 +99,17 @@ function AddFeeForm({ onSave, onCancel, loading, mode }) {
             <FormField label="Filter by Batch (optional)">
               <Select {...register('batch')}>
                 <option value="">All batches</option>
-                {BATCHES.map(b => <option key={b}>{b}</option>)}
+                {BATCHES.map((b) => (
+                  <option key={b}>{b}</option>
+                ))}
               </Select>
             </FormField>
             <FormField label="Filter by Class (optional)">
               <Select {...register('class')}>
                 <option value="">All classes</option>
-                {CLASSES.map(c => <option key={c}>{c}</option>)}
+                {CLASSES.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
               </Select>
             </FormField>
           </>
@@ -87,31 +118,56 @@ function AddFeeForm({ onSave, onCancel, loading, mode }) {
         <FormField label="Fee Type" error={errors.feeType?.message} required>
           <Select {...register('feeType')} className={errors.feeType ? 'input-error' : ''}>
             <option value="">Select type</option>
-            {FEE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            {FEE_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </option>
+            ))}
           </Select>
         </FormField>
 
         <FormField label="Amount (₹)" error={errors.amount?.message} required>
-          <input {...register('amount')} type="number" className={`input ${errors.amount ? 'input-error' : ''}`} placeholder="e.g. 3000" />
+          <input
+            {...register('amount')}
+            type="number"
+            className={`input ${errors.amount ? 'input-error' : ''}`}
+            placeholder="e.g. 2500"
+          />
         </FormField>
 
         <FormField label="Due Date" error={errors.dueDate?.message} required>
           <input {...register('dueDate')} type="date" className="input" />
         </FormField>
 
-        <FormField label="Month" hint="e.g. June 2025">
-          <input {...register('month')} className="input" placeholder="June 2025" />
+        <FormField label="Month" hint="e.g. October 2026">
+          <input {...register('month')} className="input" placeholder="e.g. October 2026" />
         </FormField>
 
         <FormField label="Remarks" className="sm:col-span-2">
-          <textarea {...register('remarks')} className="input resize-none" rows={2} placeholder="Optional notes" />
+          <textarea
+            {...register('remarks')}
+            className="input resize-none"
+            rows={2}
+            placeholder="Optional notes"
+          />
         </FormField>
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="btn btn-secondary">Cancel</button>
+        <button type="button" onClick={onCancel} className="btn btn-secondary">
+          Cancel
+        </button>
         <button type="submit" disabled={loading} className="btn btn-primary">
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Creating…</> : mode === 'bulk' ? 'Create Bulk Fees' : 'Create Fee Record'}
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Creating…
+            </>
+          ) : mode === 'bulk' ? (
+            'Create Bulk Fees'
+          ) : (
+            'Create Fee Record'
+          )}
         </button>
       </div>
     </form>
@@ -120,33 +176,38 @@ function AddFeeForm({ onSave, onCancel, loading, mode }) {
 
 export default function FeeManagement() {
   const qc = useQueryClient()
-  const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState('single')
   const [reminderLoading, setReminderLoading] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [filterStatus, setFilterStatus] = useState('')
 
   const sendFeeReminders = async () => {
-    if (!window.confirm('Send a fee reminder announcement to all students with pending/overdue fees? This will create a high-priority announcement visible to all standards.')) return
+    if (
+      !window.confirm(
+        'Send a fee reminder announcement to all students with pending/overdue fees?'
+      )
+    ) {
+      return
+    }
     setReminderLoading(true)
     try {
       await announcementService.create({
         title: 'Fee Payment Reminder',
-        content: `This is a reminder that your fee payment is pending or overdue. Please clear your dues at the earliest to avoid any interruption to your classes. For payment, please visit the student portal or contact the admin.\n\nThank you,\nVanita Math Classes`,
+        content: `Dear Students/Parents,\n\nThis is a gentle reminder from Vanita Math Classes regarding pending monthly tuition fee dues. Kindly clear the pending balance at your earliest convenience.\n\nFor details or online payments, visit the Student Portal or contact the institute desk.\n\nVanita Math Classes, Bathinda\nPhone: +91 98159-62612`,
         audience: 'students',
         priority: 'high',
         class: '',
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       })
-      toast.success('Fee reminder sent to all students')
+      toast.success('Fee reminder notice published for students')
     } catch {
       toast.error('Failed to send reminder')
     } finally {
       setReminderLoading(false)
     }
   }
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [filterStatus, setFilterStatus] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['fees', page, filterStatus],
@@ -160,20 +221,28 @@ export default function FeeManagement() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (payload) => modalMode === 'bulk' ? feeService.createBulk(payload) : feeService.create(payload),
+    mutationFn: (payload) =>
+      modalMode === 'bulk' ? feeService.createBulk(payload) : feeService.create(payload),
     onSuccess: (res) => {
       qc.invalidateQueries(['fees'])
       qc.invalidateQueries(['fee-stats'])
+      qc.invalidateQueries(['admin-dashboard'])
       setModalOpen(false)
       toast.success(res?.message || 'Fee record created')
     },
-    onError: err => toast.error(err.response?.data?.message || 'Failed'),
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: feeService.delete,
-    onSuccess: () => { qc.invalidateQueries(['fees']); qc.invalidateQueries(['fee-stats']); setDeleteTarget(null); toast.success('Fee record deleted') },
-    onError: err => toast.error(err.response?.data?.message || 'Failed'),
+    onSuccess: () => {
+      qc.invalidateQueries(['fees'])
+      qc.invalidateQueries(['fee-stats'])
+      qc.invalidateQueries(['admin-dashboard'])
+      setDeleteTarget(null)
+      toast.success('Fee record deleted')
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   })
 
   const fees = data?.fees || []
@@ -181,20 +250,34 @@ export default function FeeManagement() {
   const pages = data?.pages || 1
 
   const statMap = {}
-  ;(stats?.overview || []).forEach(s => { statMap[s._id] = s })
+  ;(stats?.overview || []).forEach((s) => {
+    statMap[s._id] = s
+  })
 
-  const openModal = (mode) => { setModalMode(mode); setModalOpen(true) }
+  const openModal = (mode) => {
+    setModalMode(mode)
+    setModalOpen(true)
+  }
 
   return (
     <Sidebar>
-      <div className="page-header flex items-center justify-between">
+      <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Fee Management</h1>
-          <p className="page-subtitle">{total} fee records</p>
+          <h1 className="page-title">Fee Management & Ledger</h1>
+          <p className="page-subtitle">{total} fee records tracked</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={sendFeeReminders} disabled={reminderLoading} className="btn btn-secondary text-orange-600 border-orange-200 hover:bg-orange-50">
-            {reminderLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />} Send Reminders
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={sendFeeReminders}
+            disabled={reminderLoading}
+            className="btn btn-outline border-amber-300 text-amber-700 hover:bg-amber-50"
+          >
+            {reminderLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Bell className="w-4 h-4" />
+            )}
+            Broadcast Reminders
           </button>
           <button onClick={() => openModal('bulk')} className="btn btn-secondary">
             <Users className="w-4 h-4" /> Bulk Create
@@ -206,16 +289,47 @@ export default function FeeManagement() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <StatCard title="Total Dues" value={formatCurrency((statMap.pending?.amount || 0) + (statMap.overdue?.amount || 0) + (statMap.partial?.amount || 0))} icon={DollarSign} color="blue" />
-        <StatCard title="Collected" value={formatCurrency(statMap.paid?.amount || 0)} icon={CheckCircle} color="green" subtitle={`${statMap.paid?.count || 0} records`} />
-        <StatCard title="Pending" value={formatCurrency(statMap.pending?.amount || 0)} icon={Clock} color="orange" subtitle={`${statMap.pending?.count || 0} records`} />
-        <StatCard title="Overdue" value={formatCurrency(statMap.overdue?.amount || 0)} icon={AlertCircle} color="red" subtitle={`${statMap.overdue?.count || 0} records`} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          label="Total Balance Due"
+          value={formatCurrency(
+            (statMap.pending?.amount || 0) +
+              (statMap.overdue?.amount || 0) +
+              (statMap.partial?.amount || 0)
+          )}
+          icon={DollarSign}
+          subtext="Pending & overdue"
+        />
+        <StatCard
+          label="Total Collected"
+          value={formatCurrency(statMap.paid?.amount || 0)}
+          icon={CheckCircle}
+          subtext={`${statMap.paid?.count || 0} cleared records`}
+        />
+        <StatCard
+          label="Pending Fees"
+          value={formatCurrency(statMap.pending?.amount || 0)}
+          icon={Clock}
+          subtext={`${statMap.pending?.count || 0} records`}
+        />
+        <StatCard
+          label="Overdue Fees"
+          value={formatCurrency(statMap.overdue?.amount || 0)}
+          icon={AlertCircle}
+          subtext={`${statMap.overdue?.count || 0} overdue`}
+        />
       </div>
 
-      <div className="card p-4 mb-4 flex flex-wrap gap-3">
-        <Select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }} className="w-40">
-          <option value="">All Status</option>
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-wrap gap-3">
+        <Select
+          value={filterStatus}
+          onChange={(e) => {
+            setFilterStatus(e.target.value)
+            setPage(1)
+          }}
+          className="w-44"
+        >
+          <option value="">All Payment Statuses</option>
           <option value="pending">Pending</option>
           <option value="paid">Paid</option>
           <option value="partial">Partial</option>
@@ -223,63 +337,125 @@ export default function FeeManagement() {
         </Select>
       </div>
 
-      <div className="table-container">
-        {isLoading ? <PageLoader /> : fees.length === 0 ? (
-          <EmptyState icon={DollarSign} title="No fee records" description="Create fee records individually or in bulk" />
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {isLoading ? (
+          <PageLoader />
+        ) : fees.length === 0 ? (
+          <EmptyState
+            icon={DollarSign}
+            title="No fee records found"
+            description="Create fee records individually or in bulk for your classes."
+          />
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Type</th>
-                <th>Month</th>
-                <th>Amount</th>
-                <th>Paid</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {fees.map(f => (
-                <tr key={f._id}>
-                  <td>
-                    <p className="font-medium text-sm text-slate-900">{f.studentId?.fullName}</p>
-                    <p className="text-xs text-slate-500">{f.studentId?.studentId}</p>
-                  </td>
-                  <td><span className="text-sm capitalize">{f.feeType}</span></td>
-                  <td><span className="text-sm">{f.month || '—'}</span></td>
-                  <td><span className="font-medium text-sm">{formatCurrency(f.amount)}</span></td>
-                  <td>
-                    <span className={`text-sm font-medium ${f.paidAmount > 0 ? 'text-green-600' : 'text-slate-400'}`}>
-                      {formatCurrency(f.paidAmount)}
-                    </span>
-                  </td>
-                  <td><span className="text-sm">{formatDate(f.dueDate)}</span></td>
-                  <td>
-                    <Badge variant={f.paymentStatus === 'paid' ? 'green' : f.paymentStatus === 'partial' ? 'yellow' : f.paymentStatus === 'overdue' ? 'red' : 'slate'}>
-                      {f.paymentStatus}
-                    </Badge>
-                  </td>
-                  <td>
-                    <button onClick={() => setDeleteTarget(f)} className="btn btn-ghost btn-sm p-1.5 text-red-500 hover:text-red-600">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                  <th className="py-3 px-4">Student</th>
+                  <th className="py-3 px-4">Fee Type</th>
+                  <th className="py-3 px-4">Month</th>
+                  <th className="py-3 px-4">Amount</th>
+                  <th className="py-3 px-4">Paid</th>
+                  <th className="py-3 px-4">Due Date</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {fees.map((f) => {
+                  const student = f.studentId
+                  const remaining = Math.max(0, f.amount - (f.paidAmount || 0))
+                  const studentPhone = student?.parentPhone || student?.phone
+                  const whatsappMsg = encodeURIComponent(
+                    `Dear Parent/Student (${student?.fullName || 'Student'}), this is a gentle reminder from Vanita Math Classes regarding fee due for ${f.month || 'tuition'} (Amount: ₹${remaining}). Kindly clear the dues at your earliest convenience. Regards, Vanita Math Classes (+91 98159-62612)`
+                  )
+                  const whatsappUrl = studentPhone ? `https://wa.me/91${studentPhone.replace(/\D/g, '')}?text=${whatsappMsg}` : null
+
+                  return (
+                    <tr key={f._id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <p className="font-bold text-gray-900">{student?.fullName || '—'}</p>
+                        <p className="text-xs text-gray-500">
+                          {student?.studentId} · Class {student?.class}
+                        </p>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-medium capitalize text-gray-700">
+                        {f.feeType}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-gray-800 font-semibold">
+                        {f.month || '—'}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-gray-900">
+                        {formatCurrency(f.amount)}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`font-semibold text-xs ${
+                            f.paidAmount > 0 ? 'text-emerald-600' : 'text-gray-400'
+                          }`}
+                        >
+                          {formatCurrency(f.paidAmount)}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-gray-500">
+                        {formatDate(f.dueDate)}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <Badge
+                          variant={
+                            f.paymentStatus === 'paid'
+                              ? 'success'
+                              : f.paymentStatus === 'partial'
+                              ? 'warning'
+                              : 'danger'
+                          }
+                        >
+                          {f.paymentStatus}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {f.paymentStatus !== 'paid' && whatsappUrl && (
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                              title="Send 1-Click WhatsApp reminder to parent"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </a>
+                          )}
+                          <button
+                            onClick={() => setDeleteTarget(f)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-red-50 transition-colors"
+                            title="Delete fee record"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
         <Pagination page={page} pages={pages} onPage={setPage} />
       </div>
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalMode === 'bulk' ? 'Bulk Create Fee Records' : 'Add Fee Record'} size="lg">
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalMode === 'bulk' ? 'Bulk Create Fee Records' : 'Add Fee Record'}
+        size="lg"
+      >
         <AddFeeForm
           mode={modalMode}
           loading={createMutation.isPending}
           onCancel={() => setModalOpen(false)}
-          onSave={data => createMutation.mutate(data)}
+          onSave={(data) => createMutation.mutate(data)}
         />
       </Modal>
 

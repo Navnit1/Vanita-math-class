@@ -10,7 +10,9 @@ export const authService = {
     return data
   },
   logout: async () => {
-    await api.post('/auth/logout')
+    try {
+      await api.post('/auth/logout')
+    } catch {}
     localStorage.removeItem('vmc_token')
     localStorage.removeItem('vmc_refresh')
     localStorage.removeItem('vmc_user')
@@ -19,12 +21,16 @@ export const authService = {
     const { data } = await api.get('/auth/me')
     return data.data
   },
-  forgotPassword: async (email) => {
-    const { data } = await api.post('/auth/forgot-password', { email })
+  sendOtp: async (identifier) => {
+    const { data } = await api.post('/auth/send-otp', { identifier })
     return data
   },
-  resetPassword: async (token, password) => {
-    const { data } = await api.post('/auth/reset-password', { token, password })
+  verifyOtpAndReset: async (identifier, otp, newPassword) => {
+    const { data } = await api.post('/auth/verify-otp-and-reset', { identifier, otp, newPassword })
+    return data
+  },
+  forgotPassword: async (identifier) => {
+    const { data } = await api.post('/auth/send-otp', { identifier })
     return data
   },
   changePassword: async (currentPassword, newPassword) => {

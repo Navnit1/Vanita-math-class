@@ -1,172 +1,192 @@
 import Student from '../models/Student.js'
-import Teacher from '../models/Teacher.js'
 import Payment from '../models/Payment.js'
 import Fee from '../models/Fee.js'
 import Attendance from '../models/Attendance.js'
 import User from '../models/User.js'
 import Material from '../models/Material.js'
 import Announcement from '../models/Announcement.js'
+import ContactInquiry from '../models/ContactInquiry.js'
+import WeeklyTest from '../models/WeeklyTest.js'
+import TestResult from '../models/TestResult.js'
 import AuditLog from '../models/AuditLog.js'
-import { sendResponse, generateTeacherId, createError } from '../utils/helpers.js'
+import { sendResponse, createError } from '../utils/helpers.js'
+import { getWhatsAppStatus, createDirectWhatsAppLink, buildFeeReminderMessage } from '../services/whatsappService.js'
+import { getEmailStatus } from '../services/emailService.js'
 
+/**
+ * PHASE 4: Admin Tuition Management Dashboard
+ * All values computed strictly from the MongoDB database.
+ */
 export const getDashboardStats = async (req, res, next) => {
   try {
     const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+    const selectedMonth = req.query.month // optional e.g. "2026-10"
+    let startOfMonth, endOfMonth
+
+    if (selectedMonth && /^\d{4}-\d{2}$/.test(selectedMonth)) {
+      const [y, m] = selectedMonth.split('-').map(Number)
+      startOfMonth = new Date(y, m - 1, 1)
+      endOfMonth = new Date(y, m, 0, 23, 59, 59)
+    } else {
+      startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+    }
 
     const [
-      totalStudents, totalTeachers, activeStudents,
-      monthlyRevenue, lastMonthRevenue, totalRevenue,
-      pendingFees, recentPayments, feeOverview, typeBreakdown,
-      notesCount, notificationsCount, attendanceAgg,
+      activeStudents,
+      totalStudents,
+      monthlyFeesAgg,
+      allTimeRevenueAgg,
+      newEnquiriesCount,
+      notesCount,
+      scheduledTestsCount,
+      completedTestsCount,
+      classDistributionAgg,
+      pendingStudents,
+      recentPayments,
+      upcomingTests,
+      latestTest,
+      recentEnquiries,
+      recentNotes,
+      attendanceThisMonthAgg,
     ] = await Promise.all([
-      Student.countDocuments(),
-      Teacher.countDocuments({ status: 'active' }),
       Student.countDocuments({ status: 'active' }),
-      Payment.aggregate([{ $match: { paymentDate: { $gte: startOfMonth }, approvalStatus: 'approved' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Payment.aggregate([{ $match: { paymentDate: { $gte: lastMonth, $lte: endLastMonth }, approvalStatus: 'approved' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Payment.aggregate([{ $match: { approvalStatus: 'approved' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Fee.aggregate([{ $match: { paymentStatus: { $in: ['pending', 'overdue'] } } }, { $group: { _id: null, total: { $sum: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } } }]),
-      Payment.find({ approvalStatus: 'approved' }).populate('studentId', 'fullName studentId').sort({ paymentDate: -1 }).limit(5),
-      Fee.aggregate([{ $group: { _id: '$paymentStatus', amount: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+      Student.countDocuments(),
+      // Fees collected in the selected month
+      Payment.aggregate([
+        { $match: { paymentDate: { $gte: startOfMonth, $lte: endOfMonth }, approvalStatus: 'approved' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      // All time fees collected
       Payment.aggregate([
         { $match: { approvalStatus: 'approved' } },
-        { $group: { _id: '$paymentType', total: { $sum: '$amount' }, count: { $sum: 1 } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
+      ContactInquiry.countDocuments({ status: 'new' }),
       Material.countDocuments({ isActive: true }),
-      Announcement.countDocuments({ isActive: true }),
+      WeeklyTest.countDocuments({ status: 'scheduled' }),
+      WeeklyTest.countDocuments({ status: 'completed' }),
+      // Class-wise active student counts
+      Student.aggregate([
+        { $match: { status: 'active' } },
+        { $group: { _id: '$class', count: { $sum: 1 } } }
+      ]),
+      // Students with pending dues
+      Student.find({
+        status: 'active',
+        $expr: { $gt: [{ $subtract: ['$totalFee', '$paidFee'] }, 0] }
+      })
+        .select('studentId fullName class batch parentName parentPhone phone totalFee paidFee feeStatus')
+        .sort({ totalFee: -1 })
+        .limit(10),
+      // Recent fee receipts
+      Payment.find({ approvalStatus: 'approved' })
+        .populate('studentId', 'fullName studentId class batch phone')
+        .sort({ paymentDate: -1 })
+        .limit(6),
+      // Upcoming tests
+      WeeklyTest.find({ status: 'scheduled', testDate: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } })
+        .sort({ testDate: 1 })
+        .limit(5),
+      // Latest test
+      WeeklyTest.findOne().sort({ testDate: -1 }),
+      // Recent enquiries
+      ContactInquiry.find().sort({ createdAt: -1 }).limit(5),
+      // Recent notes
+      Material.find({ isActive: true }).sort({ createdAt: -1 }).limit(5),
+      // Attendance percentage this month
       Attendance.aggregate([
-        { $match: { date: { $gte: startOfMonth } } },
-        { $group: { _id: null, total: { $sum: 1 }, present: { $sum: { $cond: [{ $in: ['$status', ['present', 'late']] }, 1, 0] } } } },
+        { $match: { date: { $gte: startOfMonth, $lte: endOfMonth } } },
+        { $group: { _id: null, total: { $sum: 1 }, present: { $sum: { $cond: [{ $in: ['$status', ['present', 'late']] }, 1, 0] } } } }
       ]),
     ])
 
-    const attendancePercentage = attendanceAgg[0]?.total
-      ? Math.round((attendanceAgg[0].present / attendanceAgg[0].total) * 100)
-      : 0
+    // Calculate total outstanding balance
+    const outstandingAgg = await Student.aggregate([
+      { $match: { status: 'active' } },
+      { $project: { balance: { $max: [0, { $subtract: ['$totalFee', '$paidFee'] }] } } },
+      { $group: { _id: null, totalOutstanding: { $sum: '$balance' }, pendingCount: { $sum: { $cond: [{ $gt: ['$balance', 0] }, 1, 0] } } } }
+    ])
 
-    const monthRev = monthlyRevenue[0]?.total || 0
-    const lastRev = lastMonthRevenue[0]?.total || 0
-    const revenueGrowth = lastRev > 0 ? Math.round(((monthRev - lastRev) / lastRev) * 100) : 0
+    const totalOutstandingFee = outstandingAgg[0]?.totalOutstanding || 0
+    const studentsWithPendingDuesCount = outstandingAgg[0]?.pendingCount || 0
+    const feesCollectedInMonth = monthlyFeesAgg[0]?.total || 0
+    const totalCollectedAllTime = allTimeRevenueAgg[0]?.total || 0
 
-    // Monthly revenue chart (last 6 months)
-    const monthlyChart = []
-    for (let i = 5; i >= 0; i--) {
-      const start = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59)
-      const [rev] = await Payment.aggregate([
-        { $match: { paymentDate: { $gte: start, $lte: end }, approvalStatus: 'approved' } },
-        { $group: { _id: null, total: { $sum: '$amount' }, online: { $sum: { $cond: [{ $eq: ['$paymentType', 'online'] }, '$amount', 0] } }, offline: { $sum: { $cond: [{ $eq: ['$paymentType', 'offline'] }, '$amount', 0] } } } },
-      ])
-      monthlyChart.push({
-        month: start.toLocaleString('default', { month: 'short' }),
-        revenue: rev?.total || 0,
-        online: rev?.online || 0,
-        offline: rev?.offline || 0,
-      })
+    // Format class counts: 8th, 9th, 10th, +1, +2
+    const standardClassList = ['8th', '9th', '10th', '+1', '+2']
+    const classCountMap = new Map(classDistributionAgg.map(c => [String(c._id).trim(), c.count]))
+    const classCounts = standardClassList.map(cls => ({
+      class: cls,
+      count: classCountMap.get(cls) ||
+        classCountMap.get(cls.replace('+', '11th')) ||
+        classCountMap.get(cls.replace('+', '12th')) ||
+        classCountMap.get(`Class ${cls}`) || 0,
+    }))
+
+    // Add any other classes found in DB
+    for (const [cls, cnt] of classCountMap.entries()) {
+      if (!standardClassList.includes(cls) && !classCounts.some(c => c.class === cls)) {
+        classCounts.push({ class: cls, count: cnt })
+      }
     }
 
-    const onlineTotal = typeBreakdown.find(t => t._id === 'online')?.total || 0
-    const offlineTotal = typeBreakdown.find(t => t._id === 'offline')?.total || 0
+    // Enrich pending fee dues with one-click WhatsApp reminder link
+    const pendingFeeDues = pendingStudents.map(s => {
+      const pendingAmount = Math.max(0, (s.totalFee || 0) - (s.paidFee || 0))
+      const targetPhone = s.parentPhone || s.phone
+      const currentMonthName = startOfMonth.toLocaleString('en-IN', { month: 'long', year: 'numeric' })
+      const reminderText = buildFeeReminderMessage({
+        studentName: s.fullName,
+        studentId: s.studentId,
+        studentClass: s.class,
+        month: currentMonthName,
+        pendingAmount,
+      })
+
+      return {
+        _id: s._id,
+        studentId: s.studentId,
+        fullName: s.fullName,
+        class: s.class,
+        batch: s.batch,
+        totalFee: s.totalFee,
+        paidFee: s.paidFee,
+        pendingAmount,
+        parentPhone: targetPhone,
+        whatsappLink: createDirectWhatsAppLink(targetPhone, reminderText),
+      }
+    })
+
+    const attendanceRate = attendanceThisMonthAgg[0]?.total
+      ? Math.round((attendanceThisMonthAgg[0].present / attendanceThisMonthAgg[0].total) * 100)
+      : 100
 
     sendResponse(res, 200, {
-      totalStudents,
       activeStudents,
-      totalTeachers,
-      monthlyRevenue: monthRev,
-      totalRevenue: totalRevenue[0]?.total || 0,
-      pendingFees: pendingFees[0]?.total || 0,
-      revenueGrowth,
-      recentPayments,
-      feeOverview,
-      monthlyChart,
-      onlineRevenue: onlineTotal,
-      offlineRevenue: offlineTotal,
-      notesCount,
-      notificationsCount,
-      attendancePercentage,
+      totalStudents,
+      feesCollectedThisMonth: feesCollectedInMonth,
+      totalCollectedAllTime,
+      totalOutstandingFee,
+      studentsWithPendingDuesCount,
+      newEnquiriesCount,
+      weeklyTestsScheduled: scheduledTestsCount,
+      weeklyTestsCompleted: completedTestsCount,
+      uploadedNotesCount: notesCount,
+      attendanceRate,
+      classCounts,
+      pendingFeeDues,
+      recentReceipts,
+      upcomingTests,
+      latestTest,
+      recentEnquiries,
+      recentNotes,
+      selectedMonthLabel: startOfMonth.toLocaleString('en-IN', { month: 'long', year: 'numeric' }),
+      integrations: {
+        whatsapp: getWhatsAppStatus(),
+        email: getEmailStatus(),
+      },
     })
-  } catch (err) {
-    next(err)
-  }
-}
-
-export const getTeachers = async (req, res, next) => {
-  try {
-    const { search, status } = req.query
-    const filter = {}
-    if (status) filter.status = status
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { teacherId: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-      ]
-    }
-    const teachers = await Teacher.find(filter).sort({ createdAt: -1 })
-    sendResponse(res, 200, teachers)
-  } catch (err) {
-    next(err)
-  }
-}
-
-export const createTeacher = async (req, res, next) => {
-  try {
-    const { name, email, phone, password, subjects, batches, qualification, salary, address } = req.body
-    const existingUser = await User.findOne({ email })
-    if (existingUser) return next(createError(409, 'Email already exists'))
-    const user = await User.create({ name, email, phone, password: password || 'VMC@1234', role: 'teacher', status: 'active' })
-    const teacherId = generateTeacherId()
-    const teacher = await Teacher.create({ teacherId, userId: user._id, name, email, phone, subjects, batches, qualification, salary, address })
-    sendResponse(res, 201, teacher, 'Teacher created successfully')
-  } catch (err) {
-    next(err)
-  }
-}
-
-export const updateTeacher = async (req, res, next) => {
-  try {
-    const { name, phone, subjects, batches, qualification, salary, status, address, notes } = req.body
-    const updates = { name, phone, subjects, batches, qualification, salary, status, address, notes }
-    Object.keys(updates).forEach(k => updates[k] === undefined && delete updates[k])
-    const teacher = await Teacher.findByIdAndUpdate(req.params.id, updates, { new: true })
-    if (!teacher) return next(createError(404, 'Teacher not found'))
-    if (name) await User.findByIdAndUpdate(teacher.userId, { name })
-    sendResponse(res, 200, teacher, 'Teacher updated')
-  } catch (err) {
-    next(err)
-  }
-}
-
-export const deleteTeacher = async (req, res, next) => {
-  try {
-    const teacher = await Teacher.findById(req.params.id)
-    if (!teacher) return next(createError(404, 'Teacher not found'))
-    await User.findByIdAndUpdate(teacher.userId, { status: 'inactive' })
-    teacher.status = 'inactive'
-    await teacher.save()
-    sendResponse(res, 200, null, 'Teacher deactivated')
-  } catch (err) {
-    next(err)
-  }
-}
-
-export const getAuditLogs = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 30, action, performedBy } = req.query
-    const filter = {}
-    if (action) filter.action = { $regex: action, $options: 'i' }
-    if (performedBy) filter.performedBy = performedBy
-
-    const skip = (parseInt(page) - 1) * parseInt(limit)
-    const [logs, total] = await Promise.all([
-      AuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
-      AuditLog.countDocuments(filter),
-    ])
-
-    sendResponse(res, 200, { logs, total, page: parseInt(page), pages: Math.ceil(total / limit) })
   } catch (err) {
     next(err)
   }
@@ -174,52 +194,42 @@ export const getAuditLogs = async (req, res, next) => {
 
 export const getReports = async (req, res, next) => {
   try {
-    const { type, month, year, batch, class: cls } = req.query
-
-    if (type === 'fees') {
-      const filter = {}
-      if (month && year) filter.month = `${month} ${year}`
-      if (batch) {
-        const students = await Student.find({ batch }).select('_id')
-        filter.studentId = { $in: students.map(s => s._id) }
-      }
-      const fees = await Fee.find(filter).populate('studentId', 'fullName studentId class batch phone parentPhone')
-      return sendResponse(res, 200, fees)
-    }
-
-    if (type === 'attendance') {
-      const summary = await Attendance.aggregate([
-        { $group: {
-          _id: '$studentId',
-          total: { $sum: 1 },
-          present: { $sum: { $cond: [{ $in: ['$status', ['present', 'late']] }, 1, 0] } },
-        }},
-        { $lookup: { from: 'students', localField: '_id', foreignField: '_id', as: 'student' } },
-        { $unwind: '$student' },
-        { $project: {
-          fullName: '$student.fullName', studentId: '$student.studentId', class: '$student.class', batch: '$student.batch',
-          total: 1, present: 1, absent: { $subtract: ['$total', '$present'] },
-          percentage: { $round: [{ $multiply: [{ $divide: ['$present', { $cond: [{ $eq: ['$total', 0] }, 1, '$total'] }] }, 100] }, 0] },
-        }},
+    const [monthlyFeeCollection, classStrength] = await Promise.all([
+      Payment.aggregate([
+        { $match: { approvalStatus: 'approved' } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$paymentDate' } },
+            total: { $sum: '$amount' },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } },
+        { $limit: 12 }
+      ]),
+      Student.aggregate([
+        { $match: { status: 'active' } },
+        { $group: { _id: '$class', count: { $sum: 1 } } }
       ])
-      return sendResponse(res, 200, summary)
-    }
+    ])
 
-    if (type === 'revenue') {
-      const startOfYear = new Date(year || new Date().getFullYear(), 0, 1)
-      const monthly = await Payment.aggregate([
-        { $match: { paymentDate: { $gte: startOfYear }, approvalStatus: 'approved' } },
-        { $group: { _id: { month: { $month: '$paymentDate' }, year: { $year: '$paymentDate' } }, total: { $sum: '$amount' }, count: { $sum: 1 }, online: { $sum: { $cond: [{ $eq: ['$paymentType', 'online'] }, '$amount', 0] } }, offline: { $sum: { $cond: [{ $eq: ['$paymentType', 'offline'] }, '$amount', 0] } } } },
-        { $sort: { '_id.month': 1 } },
-      ])
-      return sendResponse(res, 200, monthly)
-    }
+    sendResponse(res, 200, { monthlyFeeCollection, classStrength })
+  } catch (err) {
+    next(err)
+  }
+}
 
-    const filter = {}
-    if (batch) filter.batch = batch
-    if (cls) filter.class = cls
-    const students = await Student.find(filter).sort({ fullName: 1 })
-    sendResponse(res, 200, students)
+export const getAuditLogs = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20 } = req.query
+    const logs = await AuditLog.find()
+      .populate('userId', 'name email role')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+    const total = await AuditLog.countDocuments()
+
+    sendResponse(res, 200, { logs, total, page: Number(page), pages: Math.ceil(total / limit) })
   } catch (err) {
     next(err)
   }
