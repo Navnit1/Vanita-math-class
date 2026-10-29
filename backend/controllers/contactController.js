@@ -8,8 +8,11 @@ import logger from '../utils/logger.js'
 import {
   sendMetaWhatsAppMessage,
   createDirectWhatsAppLink,
-  buildAdmissionCredentialsMessage
+  buildAdmissionCredentialsMessage,
+  notifyAdminWhatsApp,
+  buildAdminNewEnquiryAlert
 } from '../services/whatsappService.js'
+import { sendEmail, isEmailConfigured } from '../services/emailService.js'
 
 export const submitInquiry = async (req, res, next) => {
   try {
@@ -26,6 +29,19 @@ export const submitInquiry = async (req, res, next) => {
       return next(createError(400, 'Student name, phone number, and class are required.'))
     }
 
+    // Check for rapid spam / duplicate submissions (within last 3 minutes with same phone & class)
+    const recentDuplicate = await ContactInquiry.findOne({
+      phone: targetPhone,
+      class: targetClass,
+      createdAt: { $gte: new Date(Date.now() - 3 * 60 * 1000) }
+    })
+    if (recentDuplicate) {
+      return sendResponse(res, 200, {
+        id: recentDuplicate._id,
+        inquiry: recentDuplicate,
+      }, 'Thank you! Your enquiry has already been received. Mrs. Vanita Rani Gupta will contact you shortly.')
+    }
+
     const inquiry = await ContactInquiry.create({
       name: targetName,
       parentName: (parentName || '').trim(),
@@ -39,6 +55,41 @@ export const submitInquiry = async (req, res, next) => {
     })
 
     logger.info(`New student enquiry received for Class ${targetClass}: ${targetName} (${targetPhone})`)
+
+    // 1. Notify Administrator via WhatsApp Cloud API (non-blocking)
+    const adminWhatsAppAlert = buildAdminNewEnquiryAlert({
+      name: targetName,
+      parentName: (parentName || '').trim(),
+      phone: targetPhone,
+      studentClass: targetClass,
+      batch: (preferredBatch || 'Evening').trim(),
+      school: (school || '').trim(),
+      message: (message || '').trim(),
+      enquiryId: inquiry._id.toString(),
+    })
+    notifyAdminWhatsApp(adminWhatsAppAlert).catch(err => {
+      logger.error('Failed to dispatch admin WhatsApp alert for new enquiry:', err.message)
+    })
+
+    // 2. Notify Administrator via Email if configured (non-blocking)
+    if (isEmailConfigured()) {
+      const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.EMAIL_USER
+      if (adminEmail) {
+        sendEmail({
+          to: adminEmail,
+          subject: `📢 New Enquiry: ${targetName} (Class ${targetClass})`,
+          html: `<h3>New Admission Enquiry Received</h3>
+                 <p><strong>Student Name:</strong> ${targetName}</p>
+                 <p><strong>Parent / Guardian:</strong> ${parentName || 'Not specified'}</p>
+                 <p><strong>Phone:</strong> ${targetPhone}</p>
+                 <p><strong>Class:</strong> Class ${targetClass}</p>
+                 <p><strong>Preferred Batch:</strong> ${preferredBatch || 'Evening'}</p>
+                 <p><strong>School:</strong> ${school || 'Not specified'}</p>
+                 <p><strong>Message:</strong> ${message || 'None'}</p>
+                 <p><a href="${(process.env.FRONTEND_URL || 'https://vanita-math-class.vercel.app').replace(/\/+$/, '')}/admin/inquiries">Review in Admin Portal</a></p>`,
+        }).catch(err => logger.error('Failed to send admin email alert for new enquiry:', err.message))
+      }
+    }
 
     sendResponse(res, 201, {
       id: inquiry._id,

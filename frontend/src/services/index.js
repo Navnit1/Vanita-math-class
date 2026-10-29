@@ -53,6 +53,7 @@ export const studentService = {
   approve: async (id) => { const { data } = await api.patch(`/students/${id}/approve`); return data.data },
   toggleStatus: async (id) => { const { data } = await api.patch(`/students/${id}/toggle-status`); return data.data },
   adminResetPassword: async (id) => { const { data } = await api.post(`/students/${id}/reset-password`); return data.data },
+  remindFeeWhatsApp: async (id) => { const { data } = await api.post(`/students/${id}/remind-fee-whatsapp`); return data },
   delete: async (id) => { const { data } = await api.delete(`/students/${id}`); return data },
   exportCsv: async (params) => {
     await downloadFile('/students/export/csv', `vmc-students-${new Date().toISOString().slice(0, 10)}.csv`, 'Failed to export CSV')

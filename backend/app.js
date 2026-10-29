@@ -22,6 +22,7 @@ import weeklyTestRoutes from './routes/weeklyTests.js'
 
 import { notFound, errorHandler } from './middleware/errorHandler.js'
 import logger from './utils/logger.js'
+import { getWhatsAppStatus } from './services/whatsappService.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -113,6 +114,7 @@ app.get('/api/health', (req, res) => {
     message: 'Vanita Math Classes API running',
     version: '2.0.0',
     theme: 'red-and-white',
+    whatsapp: getWhatsAppStatus(),
     timestamp: new Date().toISOString()
   })
 })

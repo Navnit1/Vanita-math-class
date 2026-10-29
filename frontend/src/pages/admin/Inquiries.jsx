@@ -6,7 +6,7 @@ import { contactService } from '@/services'
 import { formatDateTime, cn } from '@/lib/utils'
 import {
   Mail, Phone, MessageSquare, Inbox, UserPlus, ExternalLink,
-  CheckCircle2, Copy, Check, Sparkles, School, Calendar, Clock
+  CheckCircle2, Copy, Check, Sparkles, School, Calendar, Clock, RefreshCw
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -46,9 +46,10 @@ export default function Inquiries() {
 
   const qc = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['inquiries', page, filterStatus, search],
     queryFn: () => contactService.getAll({ page, limit: 15, status: filterStatus || undefined, search: search || undefined }),
+    refetchInterval: 15000,
   })
 
   const statusMutation = useMutation({
@@ -143,6 +144,16 @@ export default function Inquiries() {
             <option value="enrolled">Enrolled</option>
             <option value="closed">Closed</option>
           </Select>
+
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="btn btn-secondary btn-sm flex items-center gap-1.5"
+            title="Refresh enquiries list"
+          >
+            <RefreshCw className={cn('w-3.5 h-3.5', isFetching && 'animate-spin')} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
         </div>
       </div>
 
@@ -192,6 +203,12 @@ export default function Inquiries() {
                         {inq.status}
                       </Badge>
                       <Badge variant="primary">Class {inq.class}</Badge>
+                      {inq.message?.includes('[Online Student Registration]') && (
+                        <span className="text-[11px] font-bold text-[#C90019] bg-[#FFF5F5] border border-[#FFCCD0] px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-[#E50914]" />
+                          Online Registration
+                        </span>
+                      )}
                       {inq.preferredBatch && (
                         <span className="text-xs text-[#64748B] bg-[#F3F4F6] border border-[#D9DDE3] px-2 py-0.5 rounded-md flex items-center gap-1">
                           <Clock className="w-3 h-3 text-[#E50914]" />
@@ -244,16 +261,16 @@ export default function Inquiries() {
                       Call
                     </a>
 
-                    {/* WhatsApp Action Button */}
+                    {/* Manual WhatsApp Fallback */}
                     <a
                       href={inq.whatsappLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-secondary btn-sm flex items-center gap-1 text-[#059669] hover:bg-emerald-50 hover:border-emerald-300"
-                      title="Open WhatsApp chat"
+                      title="Open WhatsApp on web or mobile to send message manually"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      WhatsApp
+                      Open WhatsApp (Manual)
                     </a>
 
                     {/* Status Select */}

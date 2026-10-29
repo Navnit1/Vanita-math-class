@@ -5,10 +5,17 @@ import Payment from '../models/Payment.js'
 import Attendance from '../models/Attendance.js'
 import WeeklyTest from '../models/WeeklyTest.js'
 import TestResult from '../models/TestResult.js'
+import ContactInquiry from '../models/ContactInquiry.js'
 import { createError, sendResponse, paginate } from '../utils/helpers.js'
 import { generateStudentCredentials, generateTempPassword } from '../utils/idGenerator.js'
 import { recordAudit } from '../utils/auditLog.js'
 import logger from '../utils/logger.js'
+import {
+  sendMetaWhatsAppMessage,
+  createDirectWhatsAppLink,
+  buildAdmissionCredentialsMessage,
+  buildFeeReminderMessage
+} from '../services/whatsappService.js'
 
 /**
  * PHASE 5: Searchable, Filterable Student Directory
@@ -135,7 +142,43 @@ export const approveStudent = async (req, res, next) => {
     student.status = 'active'
     await student.save()
 
-    sendResponse(res, 200, { student, user }, 'Student account approved and activated')
+    // Mark any linked ContactInquiry records as enrolled
+    await ContactInquiry.updateMany(
+      { $or: [{ enrolledStudentId: student._id }, { phone: student.phone }] },
+      { status: 'enrolled', enrolledStudentId: student._id, enrolledAt: new Date() }
+    )
+
+    // Build admission message
+    const targetPhone = student.parentPhone || student.phone
+    const credMessage = buildAdmissionCredentialsMessage({
+      studentName: student.fullName,
+      studentId: student.studentId,
+      username: user.username,
+      tempPassword: '(Your password set during registration)',
+      studentClass: student.class,
+      batch: student.batch,
+    })
+    const whatsAppLink = createDirectWhatsAppLink(targetPhone, credMessage)
+
+    // Dispatch automated WhatsApp notification (non-blocking)
+    let notificationResult = null
+    if (targetPhone) {
+      sendMetaWhatsAppMessage({
+        to: targetPhone,
+        text: credMessage,
+      }).then(res => {
+        notificationResult = res
+      }).catch(err => {
+        logger.error('WhatsApp dispatch error during student approval:', err.message)
+      })
+    }
+
+    sendResponse(res, 200, {
+      student,
+      user,
+      whatsAppLink,
+      notificationResult,
+    }, `Student ${student.fullName} (${student.studentId}) approved and activated successfully!`)
 
     recordAudit({
       action: 'student.approve',
@@ -455,6 +498,61 @@ export const deleteStudent = async (req, res, next) => {
     })
 
     sendResponse(res, 200, null, 'Student deactivated. All historical marks and fee records are safely preserved.')
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * Send automated fee reminder via Meta WhatsApp Cloud API (with manual fallback link)
+ */
+export const sendStudentFeeReminderWhatsApp = async (req, res, next) => {
+  try {
+    const student = await Student.findById(req.params.id)
+    if (!student) return next(createError(404, 'Student not found'))
+
+    const pendingAmount = Math.max(0, (student.totalFee || 0) - (student.paidFee || 0))
+    if (pendingAmount <= 0) {
+      return next(createError(400, 'Student has no outstanding balance.'))
+    }
+
+    const targetPhone = student.parentPhone || student.phone
+    if (!targetPhone) {
+      return next(createError(400, 'No parent or student phone number registered.'))
+    }
+
+    const currentMonth = new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' })
+    const reminderText = buildFeeReminderMessage({
+      studentName: student.fullName,
+      studentId: student.studentId,
+      studentClass: student.class,
+      month: currentMonth,
+      pendingAmount,
+    })
+
+    const whatsAppLink = createDirectWhatsAppLink(targetPhone, reminderText)
+
+    // Attempt automated Meta Cloud API send
+    const result = await sendMetaWhatsAppMessage({
+      to: targetPhone,
+      text: reminderText,
+    })
+
+    recordAudit({
+      action: 'fee.reminder_whatsapp',
+      user: req.user,
+      targetType: 'Student',
+      targetId: student._id,
+      description: `Dispatched fee reminder to ${student.fullName} (${targetPhone}) - Status: ${result.status}`,
+      req,
+    })
+
+    sendResponse(res, 200, {
+      ...result,
+      whatsAppLink,
+      pendingAmount,
+      recipientPhone: targetPhone,
+    }, result.success ? `WhatsApp fee reminder sent to ${targetPhone} via Cloud API!` : `Cloud API status: ${result.status}. Manual WhatsApp link ready.`)
   } catch (err) {
     next(err)
   }

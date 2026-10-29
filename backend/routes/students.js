@@ -3,6 +3,7 @@ import {
   getAllStudents, getStudentById, createStudent, updateStudent, deleteStudent,
   getMyProfile, getMyFees, getMyPayments, getMyAttendance, approveStudent,
   exportStudentsCsv, adminResetStudentPassword, toggleStudentStatus,
+  sendStudentFeeReminderWhatsApp,
 } from '../controllers/studentController.js'
 import { protect, authorize } from '../middleware/auth.js'
 import { uploadProfile } from '../middleware/upload.js'
@@ -24,6 +25,7 @@ router.get('/:id', authorize('admin'), getStudentById)
 router.put('/:id', authorize('admin'), uploadProfile.single('profilePhoto'), updateStudent)
 router.patch('/:id/approve', authorize('admin'), approveStudent)
 router.patch('/:id/toggle-status', authorize('admin'), toggleStudentStatus)
+router.post('/:id/remind-fee-whatsapp', authorize('admin'), sendStudentFeeReminderWhatsApp)
 router.post('/:id/reset-password', authorize('admin'), adminResetStudentPassword)
 router.delete('/:id', authorize('admin'), deleteStudent)
 

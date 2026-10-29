@@ -3,17 +3,42 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/layout/Sidebar'
 import { StatCard, PageLoader, ErrorState, SectionCard, Avatar, Badge } from '@/components/ui'
-import { adminService } from '@/services'
+import { adminService, studentService } from '@/services'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import {
   Users, DollarSign, AlertCircle, TrendingUp, Calendar, BookOpen,
   ClipboardCheck, Mail, PlusCircle, CreditCard, PenTool,
-  Upload, ExternalLink, ArrowRight, CheckCircle2, Clock, Phone, RefreshCw
+  Upload, ExternalLink, ArrowRight, CheckCircle2, Clock, Phone, RefreshCw, Send
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [selectedMonth, setSelectedMonth] = useState('')
+  const [sendingReminderId, setSendingReminderId] = useState(null)
+
+  const handleSendReminder = async (student) => {
+    try {
+      setSendingReminderId(student._id)
+      const res = await studentService.remindFeeWhatsApp(student._id)
+      if (res?.data?.success) {
+        toast.success(`Fee reminder dispatched via WhatsApp to ${res.data?.recipientPhone || student.fullName}!`)
+      } else {
+        toast(`WhatsApp Cloud API not active (${res?.data?.status || 'unconfigured'}). Opening manual WhatsApp link...`, { icon: 'ℹ️' })
+        const targetUrl = res?.data?.whatsAppLink || student.whatsappLink
+        if (targetUrl) {
+          window.open(targetUrl, '_blank')
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send fee reminder')
+      if (student.whatsappLink) {
+        window.open(student.whatsappLink, '_blank')
+      }
+    } finally {
+      setSendingReminderId(null)
+    }
+  }
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['admin-dashboard', selectedMonth],
@@ -292,18 +317,34 @@ export default function AdminDashboard() {
                       <p className="text-[10px] text-[#64748B]">Dues pending</p>
                     </div>
 
-                    {s.whatsappLink && (
-                      <a
-                        href={s.whatsappLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm text-[#059669] hover:bg-emerald-50 hover:border-emerald-300 flex items-center gap-1 text-xs"
-                        title="Send WhatsApp Fee Reminder"
+                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                      <button
+                        onClick={() => handleSendReminder(s)}
+                        disabled={sendingReminderId === s._id}
+                        className="btn btn-primary btn-sm text-xs py-1 px-2.5 flex items-center gap-1.5 shadow-xs font-semibold"
+                        title="Send automated WhatsApp fee reminder"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        Reminder
-                      </a>
-                    )}
+                        {sendingReminderId === s._id ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                        {sendingReminderId === s._id ? 'Sending…' : 'Send Reminder'}
+                      </button>
+
+                      {s.whatsappLink && (
+                        <a
+                          href={s.whatsappLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-[#059669] hover:underline flex items-center gap-1 py-0.5 px-1 font-medium"
+                          title="Open WhatsApp manually in web browser"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Manual
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

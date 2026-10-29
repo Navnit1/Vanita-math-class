@@ -169,6 +169,7 @@ export default function ManageStudents() {
   const [credentialsModal, setCredentialsModal] = useState(null)
   const [copied, setCopied] = useState(false)
   const [deactivateTarget, setDeactivateTarget] = useState(null)
+  const [sendingReminderId, setSendingReminderId] = useState(null)
 
   // Direct Quick Payment Modal
   const [recordFeeTarget, setRecordFeeTarget] = useState(null)
@@ -213,6 +214,50 @@ export default function ManageStudents() {
     },
     onError: err => toast.error(err.response?.data?.message || 'Failed to update student'),
   })
+
+  const approveMutation = useMutation({
+    mutationFn: studentService.approve,
+    onSuccess: (res) => {
+      qc.invalidateQueries(['students'])
+      qc.invalidateQueries(['admin-dashboard'])
+      qc.invalidateQueries(['inquiries'])
+      toast.success(res?.message || 'Student admission approved and activated!')
+      if (res?.data?.whatsAppLink) {
+        toast.success('Admission confirmation dispatched to student!')
+      }
+      if (res?.data?.user) {
+        setCredentialsModal({
+          studentId: res?.data?.student?.studentId,
+          username: res?.data?.user?.username,
+          temporaryPassword: '(Password created during registration)',
+        })
+      }
+    },
+    onError: err => toast.error(err.response?.data?.message || 'Failed to approve student admission'),
+  })
+
+  const handleRemindFee = async (student) => {
+    try {
+      setSendingReminderId(student._id)
+      const res = await studentService.remindFeeWhatsApp(student._id)
+      if (res?.data?.success) {
+        toast.success(`Fee reminder sent to ${res.data?.recipientPhone || student.fullName} via WhatsApp!`)
+      } else {
+        toast(`WhatsApp Cloud API not active (${res?.data?.status || 'unconfigured'}). Opening manual WhatsApp link...`, { icon: 'ℹ️' })
+        const targetUrl = res?.data?.whatsAppLink || student.whatsappLink
+        if (targetUrl) {
+          window.open(targetUrl, '_blank')
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to dispatch fee reminder')
+      if (student.whatsappLink) {
+        window.open(student.whatsappLink, '_blank')
+      }
+    } finally {
+      setSendingReminderId(null)
+    }
+  }
 
   const toggleStatusMutation = useMutation({
     mutationFn: studentService.toggleStatus,
@@ -346,13 +391,28 @@ export default function ManageStudents() {
         <Select
           value={selectedStatus}
           onChange={e => { setSelectedStatus(e.target.value); setPage(1) }}
-          className="w-32 text-xs"
+          className="w-40 text-xs"
         >
-          <option value="">All Status</option>
-          <option value="active">Active Only</option>
-          <option value="inactive">Deactivated</option>
+          <option value="active">Active Students</option>
+          <option value="inactive">Pending / Inactive</option>
+          <option value="">All Students</option>
         </Select>
       </div>
+
+      {selectedStatus === 'inactive' && (
+        <div className="mb-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-900 font-medium">
+          <div className="flex items-center gap-2">
+            <UserCheck className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Showing pending admissions and inactive accounts. Click <strong>"Approve"</strong> to activate self-registered student accounts.</span>
+          </div>
+          <button
+            onClick={() => setSelectedStatus('active')}
+            className="text-xs font-bold text-[#E50914] hover:underline ml-2"
+          >
+            Switch to Active
+          </button>
+        </div>
+      )}
 
       {/* Students Directory Table */}
       {isLoading ? (
@@ -443,8 +503,8 @@ export default function ManageStudents() {
 
                       {/* Active Status */}
                       <td>
-                        <Badge variant={isActive ? 'green' : 'slate'}>
-                          {isActive ? 'Active' : 'Deactivated'}
+                        <Badge variant={isActive ? 'green' : 'yellow'}>
+                          {isActive ? 'Active' : 'Pending / Inactive'}
                         </Badge>
                       </td>
 
@@ -456,6 +516,19 @@ export default function ManageStudents() {
                       {/* Actions */}
                       <td>
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Approve Admission Shortcut for inactive/pending students */}
+                          {!isActive && (
+                            <button
+                              onClick={() => approveMutation.mutate(s._id)}
+                              disabled={approveMutation.isPending}
+                              className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition-colors shrink-0"
+                              title="Approve student admission and activate account"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                              Approve
+                            </button>
+                          )}
+
                           {/* View details */}
                           <button
                             onClick={() => setViewingStudent(s)}
@@ -464,6 +537,18 @@ export default function ManageStudents() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
+
+                          {/* Fee Reminder Shortcut if dues pending */}
+                          {pendingBalance > 0 && (
+                            <button
+                              onClick={() => handleRemindFee(s)}
+                              disabled={sendingReminderId === s._id}
+                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                              title="Send WhatsApp Fee Reminder"
+                            >
+                              <Phone className="w-4 h-4" />
+                            </button>
+                          )}
 
                           {/* Record Fee Shortcut */}
                           <button

@@ -1,13 +1,15 @@
 import crypto from 'crypto'
 import User from '../models/User.js'
 import Student from '../models/Student.js'
+import ContactInquiry from '../models/ContactInquiry.js'
 import {
   createError, generateAccessToken, generateRefreshToken, sendResponse
 } from '../utils/helpers.js'
 import { generateStudentCredentials } from '../utils/idGenerator.js'
 import { recordAudit } from '../utils/auditLog.js'
 import logger from '../utils/logger.js'
-import { sendPasswordResetOtpEmail, getEmailStatus } from '../services/emailService.js'
+import { sendPasswordResetOtpEmail, sendEmail, isEmailConfigured, getEmailStatus } from '../services/emailService.js'
+import { notifyAdminWhatsApp, buildAdminNewRegistrationAlert } from '../services/whatsappService.js'
 
 export const login = async (req, res, next) => {
   try {
@@ -69,16 +71,30 @@ export const register = async (req, res, next) => {
   try {
     const { name, email, phone, password, class: studentClass, batch, parentName, parentPhone, address, school } = req.body
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() })
-    if (existingUser) return next(createError(409, 'Email already registered. Please login or contact admin.'))
+    const cleanEmail = (email || '').trim().toLowerCase()
+    const cleanPhone = (phone || '').trim()
 
-    const { studentId, username } = await generateStudentCredentials(name, studentClass || '8th')
+    if (!name || !cleanEmail || !cleanPhone || !password) {
+      return next(createError(400, 'Student name, email, phone number, and password are required.'))
+    }
+
+    const existingUser = await User.findOne({ email: cleanEmail })
+    if (existingUser) return next(createError(409, 'This email address is already registered. Please log in or contact the institute.'))
+
+    const existingStudentPhone = await Student.findOne({ phone: cleanPhone })
+    if (existingStudentPhone) {
+      return next(createError(409, 'This phone number is already registered for an existing student. Please log in or contact the institute.'))
+    }
+
+    const targetClass = studentClass || '8th'
+    const targetBatch = batch || 'Evening'
+    const { studentId, username } = await generateStudentCredentials(name, targetClass)
 
     // Students are created in 'pending' status — they cannot activate themselves without admin approval!
     const user = await User.create({
       name,
-      email: email.toLowerCase(),
-      phone,
+      email: cleanEmail,
+      phone: cleanPhone,
       username,
       password,
       role: 'student',
@@ -86,23 +102,75 @@ export const register = async (req, res, next) => {
       mustChangePassword: false,
     })
 
-    await Student.create({
+    const student = await Student.create({
       studentId,
       userId: user._id,
       fullName: name,
-      email: email.toLowerCase(),
-      phone,
-      class: studentClass || '8th',
-      batch: batch || 'Evening',
-      school: school || '',
-      parentName,
-      parentPhone,
-      address,
+      email: cleanEmail,
+      phone: cleanPhone,
+      class: targetClass,
+      batch: targetBatch,
+      school: (school || '').trim(),
+      parentName: (parentName || '').trim(),
+      parentPhone: (parentPhone || cleanPhone).trim(),
+      address: (address || '').trim(),
       status: 'inactive', // inactive until admin approves admission
       feeStatus: 'pending',
     })
 
-    logger.info(`New student registration requested: ${email} (${name})`)
+    // Deliberate, documented 1:1 mapping: Create linked ContactInquiry record
+    // so the registration is immediately visible in the Admin Enquiries section
+    await ContactInquiry.create({
+      name,
+      parentName: (parentName || '').trim(),
+      email: cleanEmail,
+      phone: cleanPhone,
+      class: targetClass,
+      school: (school || '').trim(),
+      preferredBatch: targetBatch,
+      message: `[Online Student Registration] Roll Number: ${studentId}. Account created with status pending, awaiting admin approval.`,
+      status: 'new',
+      enrolledStudentId: student._id,
+    })
+
+    logger.info(`New student registration requested: ${cleanEmail} (${name}), Roll: ${studentId}`)
+
+    // 1. Notify Administrator via WhatsApp Cloud API (non-blocking)
+    const adminWhatsAppAlert = buildAdminNewRegistrationAlert({
+      name,
+      studentId,
+      studentClass: targetClass,
+      batch: targetBatch,
+      phone: cleanPhone,
+      parentName: parentName || '',
+      parentPhone: parentPhone || cleanPhone,
+      email: cleanEmail,
+    })
+    notifyAdminWhatsApp(adminWhatsAppAlert).catch(err => {
+      logger.error('Failed to dispatch admin WhatsApp alert for new registration:', err.message)
+    })
+
+    // 2. Notify Administrator via Email if configured (non-blocking)
+    if (isEmailConfigured()) {
+      const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.EMAIL_USER
+      if (adminEmail) {
+        sendEmail({
+          to: adminEmail,
+          subject: `🔔 New Student Registration: ${name} (Class ${targetClass}, Roll: ${studentId})`,
+          html: `<h3>New Online Student Registration</h3>
+                 <p>A new prospective student has registered online and requires admission approval before logging in:</p>
+                 <p><strong>Student Name:</strong> ${name}</p>
+                 <p><strong>Roll Number:</strong> ${studentId}</p>
+                 <p><strong>Class & Batch:</strong> Class ${targetClass} (${targetBatch})</p>
+                 <p><strong>Student Phone:</strong> ${cleanPhone}</p>
+                 <p><strong>Parent / Guardian:</strong> ${parentName || 'Not specified'} (${parentPhone || cleanPhone})</p>
+                 <p><strong>Email:</strong> ${cleanEmail}</p>
+                 <p><strong>School:</strong> ${school || 'Not specified'}</p>
+                 <p><a href="${(process.env.FRONTEND_URL || 'https://vanita-math-class.vercel.app').replace(/\/+$/, '')}/admin/inquiries">Review in Admin Portal</a></p>`,
+        }).catch(err => logger.error('Failed to dispatch admin email alert for registration:', err.message))
+      }
+    }
+
     sendResponse(res, 201, { studentId, username }, 'Registration submitted successfully. The administrator will review and approve your account before you can log in.')
   } catch (err) {
     next(err)
