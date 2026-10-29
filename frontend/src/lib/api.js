@@ -1,9 +1,17 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
+const rawEnvUrl = import.meta.env.VITE_API_BASE_URL
+
+export const API_BASE_URL = (rawEnvUrl && rawEnvUrl.trim() !== '')
+  ? rawEnvUrl.replace(/\/+$/, '')
+  : (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? 'https://vanita-math-class.onrender.com/api'
+      : '/api')
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  timeout: 20000,
+  baseURL: API_BASE_URL,
+  timeout: 45000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -22,7 +30,21 @@ const processQueue = (error, token = null) => {
 }
 
 api.interceptors.response.use(
-  res => res,
+  res => {
+    // Detect if Vercel SPA router served index.html instead of backend JSON
+    if (typeof res.data === 'string' && res.data.trim().toLowerCase().startsWith('<!doctype html')) {
+      const htmlError = new Error('Received HTML response instead of JSON. The backend API is waking up or routing is misconfigured.')
+      htmlError.response = {
+        status: 502,
+        data: {
+          success: false,
+          message: 'Backend service is starting up (cold start). Please click Try Again in a few moments.',
+        },
+      }
+      return Promise.reject(htmlError)
+    }
+    return res
+  },
   async err => {
     const original = err.config
     const status = err.response?.status
@@ -48,7 +70,7 @@ api.interceptors.response.use(
         isRefreshing = true
 
         try {
-          const { data } = await axios.post(`${import.meta.env.VITE_API_BASE_URL || '/api'}/auth/refresh-token`, { refreshToken: refresh })
+          const { data } = await axios.post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken: refresh })
           const newToken = data.data.accessToken
           localStorage.setItem('vmc_token', newToken)
           localStorage.setItem('vmc_refresh', data.data.refreshToken)
@@ -69,7 +91,10 @@ api.interceptors.response.use(
     }
 
     if (status === 403) toast.error('You do not have permission for this action')
-    if (status >= 500) toast.error('Server error. Please try again.')
+    if (status >= 500) {
+      const msg = err.response?.data?.message || 'Server error. Please try again.'
+      toast.error(msg)
+    }
 
     return Promise.reject(err)
   }

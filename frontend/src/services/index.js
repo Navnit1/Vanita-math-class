@@ -1,4 +1,4 @@
-import api from '@/lib/api'
+import api, { API_BASE_URL } from '@/lib/api'
 import toast from 'react-hot-toast'
 
 const readBlobErrorMessage = async (blob, fallback) => {
@@ -99,7 +99,7 @@ export const paymentService = {
   verifyOnlinePayment: async (payload) => { const { data } = await api.post('/payments/online/verify', payload); return data.data },
 
   // Receipt download URL & trigger
-  receiptUrl: (id) => `${import.meta.env.VITE_API_BASE_URL || '/api'}/payments/${id}/receipt`,
+  receiptUrl: (id) => `${API_BASE_URL}/payments/${id}/receipt`,
   downloadReceipt: async (id, receiptNo) => {
     await downloadFile(`/payments/${id}/receipt`, `receipt-${receiptNo || id}.pdf`, 'Failed to download receipt PDF')
   },
@@ -141,7 +141,7 @@ export const materialService = {
     const { data } = await api.put(`/materials/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     return data.data
   },
-  viewUrl: (id) => `${import.meta.env.VITE_API_BASE_URL || '/api'}/materials/${id}/view`,
+  viewUrl: (id) => `${API_BASE_URL}/materials/${id}/view`,
   delete: async (id) => { const { data } = await api.delete(`/materials/${id}`); return data },
 }
 

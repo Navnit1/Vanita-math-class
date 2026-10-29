@@ -8,20 +8,64 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import {
   Users, DollarSign, AlertCircle, TrendingUp, Calendar, BookOpen,
   ClipboardCheck, Mail, PlusCircle, CreditCard, PenTool,
-  Upload, ExternalLink, ArrowRight, CheckCircle2, Clock, Phone
+  Upload, ExternalLink, ArrowRight, CheckCircle2, Clock, Phone, RefreshCw
 } from 'lucide-react'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [selectedMonth, setSelectedMonth] = useState('')
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['admin-dashboard', selectedMonth],
     queryFn: () => adminService.getDashboard(selectedMonth || undefined),
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   })
 
   if (isLoading) return <Sidebar><PageLoader /></Sidebar>
-  if (isError) return <Sidebar><ErrorState message="Failed to load tuition management dashboard" onRetry={refetch} /></Sidebar>
+
+  if (isError) {
+    const errorMsg = error?.response?.data?.message || error?.message || 'Failed to load tuition management dashboard'
+    return (
+      <Sidebar>
+        <div className="max-w-xl mx-auto my-12 p-6 sm:p-8 bg-white border border-[#D9DDE3] rounded-2xl shadow-card text-center space-y-4">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center">
+            <AlertCircle className="w-7 h-7 text-[#E50914]" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-[#171717]">Tuition Dashboard Connecting...</h2>
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1.5 leading-relaxed">
+              {errorMsg}
+            </p>
+            <div className="text-xs text-[#64748B] mt-3 bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-xl text-left space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-amber-800">
+                <Clock className="w-3.5 h-3.5 text-amber-700" /> Server Connection Notice:
+              </p>
+              <p>The backend is hosted on Render. When idle, the free-tier service takes ~30–45 seconds to spin up from sleep. If you see this message, the server is waking up now.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="btn btn-primary btn-sm flex items-center gap-2"
+            >
+              <RefreshCw className={cn('w-4 h-4', isFetching && 'animate-spin')} />
+              {isFetching ? 'Connecting to Server...' : 'Try Again'}
+            </button>
+            <a
+              href="https://vanita-math-class.onrender.com/api/health"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary btn-sm text-xs flex items-center gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> Check API Health
+            </a>
+          </div>
+        </div>
+      </Sidebar>
+    )
+  }
 
   const d = data || {}
   const classCounts = d.classCounts || []

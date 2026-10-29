@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { authService } from '@/services/authService'
 import { Eye, EyeOff, CheckCircle2, ArrowLeft, Loader2, Phone, MapPin, ShieldAlert } from 'lucide-react'
 import { FormField, Select } from '@/components/ui'
+import AuthHeader from '@/components/layout/AuthHeader'
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -83,16 +84,8 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between p-4 sm:p-6 lg:p-8">
-      <header className="max-w-2xl mx-auto w-full flex items-center justify-between pb-6 border-b border-[#D9DDE3]">
-        <Link to="/" className="flex items-center gap-2.5">
-          <img src="/fab2.jpeg" alt="Logo" className="w-9 h-9 rounded-lg object-contain border border-[#D9DDE3] bg-white p-0.5" />
-          <span className="font-extrabold text-[#171717] text-base uppercase">Vanita Math Classes</span>
-        </Link>
-        <Link to="/login" className="inline-flex items-center gap-1 text-xs font-semibold text-[#64748B] hover:text-[#C90019]">
-          <ArrowLeft className="w-3.5 h-3.5" /> Existing Student? Login
-        </Link>
-      </header>
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between">
+      <AuthHeader subtitle="New Student Registration Request" currentPortal="student" />
 
       <div className="max-w-2xl mx-auto w-full my-auto py-8">
         <div className="bg-white border border-[#D9DDE3] rounded-2xl shadow-card p-6 sm:p-8">

@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
 import { Shield, Eye, EyeOff, Loader2, Phone, MapPin, ArrowLeft } from 'lucide-react'
 import { FormField } from '@/components/ui'
+import AuthHeader from '@/components/layout/AuthHeader'
 
 const schema = z.object({
   identifier: z.string().min(1, 'Enter your admin email or username'),
@@ -37,31 +38,8 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between p-4 sm:p-6 lg:p-8">
-      <header className="max-w-4xl mx-auto w-full flex items-center justify-between pb-6 border-b border-[#D9DDE3]">
-        <Link to="/" className="flex items-center gap-3">
-          <img
-            src="/fab2.jpeg"
-            alt="Vanita Math Classes logo"
-            className="w-10 h-10 rounded-lg object-contain border border-[#D9DDE3] bg-white p-0.5 shrink-0 shadow-xs"
-          />
-          <div>
-            <span className="font-extrabold text-[#171717] text-base sm:text-lg tracking-tight uppercase block leading-tight">
-              Vanita Math Classes
-            </span>
-            <span className="text-xs font-semibold text-[#E50914] block">
-              Administration Portal
-            </span>
-          </div>
-        </Link>
-
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-white border border-[#D9DDE3] text-[#171717] hover:bg-[#F3F4F6] transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Login
-        </Link>
-      </header>
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between">
+      <AuthHeader subtitle="Administrator Access Portal" currentPortal="admin" />
 
       <div className="max-w-md mx-auto w-full my-auto py-8">
         <div className="bg-white border border-[#D9DDE3] rounded-2xl shadow-card p-6 sm:p-8">

@@ -11,8 +11,14 @@ import { validate } from '../middleware/validate.js'
 
 const router = Router()
 
-// Login accepts email, username, OR Student ID in 'identifier' field
+// Login accepts email, username, OR Student ID in 'identifier' or 'email' field
 router.post('/login',
+  (req, res, next) => {
+    if (!req.body.identifier && req.body.email) {
+      req.body.identifier = req.body.email
+    }
+    next()
+  },
   [
     body('identifier')
       .trim()

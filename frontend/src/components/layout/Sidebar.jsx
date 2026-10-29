@@ -8,7 +8,7 @@ import { Avatar } from '@/components/ui'
 import {
   LayoutDashboard, Users, DollarSign, BookOpen, Bell, Calendar,
   LogOut, Menu, X, ClipboardList, BarChart3,
-  Settings, UserCheck, Mail, ClipboardCheck, Phone
+  Settings, UserCheck, Mail, ClipboardCheck, Phone, Shield
 } from 'lucide-react'
 
 const ADMIN_NAV = [
@@ -69,21 +69,23 @@ export default function Sidebar({ children }) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white border-r border-[#D9DDE3]">
-      {/* Brand Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#D9DDE3] bg-[#FAFAFA]">
-        <img
-          src="/fab2.jpeg"
-          alt="Vanita Math Classes logo"
-          className="w-9 h-9 rounded-lg object-contain border border-[#D9DDE3] bg-white p-0.5 shrink-0"
-        />
+      {/* Official VMC Branded Red Gradient Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#8A000F] bg-gradient-to-r from-[#E50914] via-[#C90019] to-[#990012] text-white shadow-xs">
+        <div className="h-10 w-14 bg-white/10 border border-white/25 rounded-lg p-1 flex items-center justify-center shrink-0">
+          <img
+            src="/vmc-logo-white.svg"
+            alt="VMC Logo"
+            className="h-8 w-auto object-contain drop-shadow"
+          />
+        </div>
         <div className="min-w-0">
-          <p className="font-extrabold text-[#171717] text-sm leading-tight tracking-tight uppercase">
+          <p className="font-black text-white text-sm leading-tight tracking-tight font-serif uppercase">
             Vanita Math Classes
           </p>
-          <p className="text-[11px] font-semibold text-[#E50914] flex items-center gap-1 mt-0.5">
+          <p className="text-[11px] font-semibold text-red-100 flex items-center gap-1 mt-0.5">
             <span>Maths 8th–+2</span>
-            <span className="text-[#64748B]">·</span>
-            <span className="text-[#64748B] font-normal truncate">Bathinda</span>
+            <span className="text-white/60">·</span>
+            <span className="text-white/80 font-normal truncate">Bathinda</span>
           </p>
         </div>
       </div>
@@ -159,15 +161,24 @@ export default function Sidebar({ children }) {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col lg:flex-row">
-      {/* Mobile Sticky Header */}
-      <header className="lg:hidden sticky top-0 z-40 bg-white border-b border-[#D9DDE3] px-4 py-3 flex items-center justify-between shadow-xs">
-        <Link to={isAdmin ? '/admin' : '/dashboard'} className="flex items-center gap-2">
-          <img src="/fab2.jpeg" alt="Logo" className="w-7 h-7 rounded-md object-contain border border-[#D9DDE3]" />
-          <span className="font-extrabold text-[#171717] text-sm tracking-tight">VANITA MATH CLASSES</span>
+      {/* Mobile Sticky Red Gradient Header */}
+      <header className="lg:hidden sticky top-0 z-40 bg-gradient-to-r from-[#E50914] via-[#C90019] to-[#990012] text-white border-b border-[#8A000F] px-4 py-3 flex items-center justify-between shadow-md">
+        <Link to={isAdmin ? '/admin' : '/dashboard'} className="flex items-center gap-2.5">
+          <div className="h-8 w-12 bg-white/10 border border-white/30 rounded-md p-0.5 flex items-center justify-center shrink-0">
+            <img src="/vmc-logo-white.svg" alt="VMC Logo" className="h-6 w-auto object-contain" />
+          </div>
+          <div>
+            <span className="font-black text-white text-sm tracking-tight block leading-tight font-serif">
+              VANITA MATH CLASSES
+            </span>
+            <span className="text-[10px] text-red-100 block font-medium">
+              {isAdmin ? 'Administrator Portal' : 'Student Portal'}
+            </span>
+          </div>
         </Link>
         <button
           onClick={() => setOpen(true)}
-          className="p-2 rounded-lg text-[#171717] hover:bg-[#F3F4F6]"
+          className="p-2 rounded-lg text-white hover:bg-white/15 transition-colors"
           aria-label="Open navigation menu"
         >
           <Menu className="w-5 h-5" />
@@ -191,6 +202,26 @@ export default function Sidebar({ children }) {
 
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        {/* Desktop Portal Branded Bar */}
+        <div className="hidden lg:flex items-center justify-between px-5 py-3 mb-6 rounded-xl bg-white border border-[#D9DDE3] shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#E50914] animate-pulse" />
+            <span className="text-xs font-bold text-[#171717] tracking-wider uppercase">
+              {isAdmin ? 'Administrator Portal · Vanita Math Classes' : `Student Learning Portal · Class ${user?.profile?.class || ''}`}
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-[#FFF5F5] border border-[#FFCCD0] text-[#C90019] text-[10px] font-extrabold uppercase">
+              {isAdmin ? 'Admin' : 'Student'}
+            </span>
+          </div>
+          <div className="flex items-center gap-5 text-xs text-[#64748B]">
+            <span className="flex items-center gap-1 font-medium">
+              📍 #302, Phase-II, Vishal Nagar, Bathinda
+            </span>
+            <a href="tel:9815962612" className="flex items-center gap-1 font-bold text-[#E50914] hover:underline">
+              <Phone className="w-3.5 h-3.5" /> 98159-62612
+            </a>
+          </div>
+        </div>
         {children}
       </main>
     </div>

@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, Phone, Award, Sparkles, BookOpen } from 'luci
 
 export default function Hero() {
   return (
-    <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-to-b from-red-50/40 via-white to-gray-50/60 border-b border-gray-200">
+    <section className="relative pt-36 sm:pt-40 pb-20 overflow-hidden bg-gradient-to-b from-red-50/40 via-white to-gray-50/60 border-b border-gray-200">
       {/* Decorative math geometry background lines */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#E50914_1px,transparent_1px)] [background-size:24px_24px]" />
 

@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
 import { Eye, EyeOff, Loader2, Phone, MapPin, Award, ArrowRight, UserPlus, HelpCircle, Shield, LogIn } from 'lucide-react'
 import { FormField } from '@/components/ui'
+import AuthHeader from '@/components/layout/AuthHeader'
 
 const schema = z.object({
   identifier: z.string().min(1, 'Enter your email, username, or Student ID / Roll Number'),
@@ -43,32 +44,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between p-4 sm:p-6 lg:p-8">
-      {/* Top Header Bar */}
-      <header className="max-w-4xl mx-auto w-full flex items-center justify-between pb-6 border-b border-[#D9DDE3]">
-        <Link to="/" className="flex items-center gap-3 group">
-          <img
-            src="/fab2.jpeg"
-            alt="Vanita Math Classes logo"
-            className="w-10 h-10 rounded-lg object-contain border border-[#D9DDE3] bg-white p-0.5 shrink-0 shadow-xs"
-          />
-          <div>
-            <span className="font-extrabold text-[#171717] text-base sm:text-lg tracking-tight uppercase block leading-tight">
-              Vanita Math Classes
-            </span>
-            <span className="text-xs font-semibold text-[#E50914] block">
-              Mathematics Tuition · 8th, 9th, 10th, +1, +2
-            </span>
-          </div>
-        </Link>
-
-        <a
-          href="tel:9815962612"
-          className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#FFF5F5] border border-[#FFCCD0] text-[#C90019] hover:bg-[#FFE5E7] transition-colors"
-        >
-          <Phone className="w-3.5 h-3.5" /> 98159-62612
-        </a>
-      </header>
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between">
+      <AuthHeader subtitle="Student & Parent Portal · Mathematics 8th–+2" currentPortal="student" />
 
       {/* Main Container */}
       <div className="max-w-md mx-auto w-full my-auto py-8">

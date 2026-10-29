@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { authService } from '@/services/authService'
 import { KeyRound, Mail, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Eye, EyeOff, ShieldCheck, Phone } from 'lucide-react'
 import { FormField } from '@/components/ui'
+import AuthHeader from '@/components/layout/AuthHeader'
 import toast from 'react-hot-toast'
 
 export default function ForgotPasswordPage() {
@@ -81,26 +82,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <header className="max-w-md mx-auto w-full flex items-center justify-between pb-6 border-b border-[#D9DDE3]">
-        <Link to="/" className="flex items-center gap-2.5">
-          <img
-            src="/fab2.jpeg"
-            alt="Logo"
-            className="w-9 h-9 rounded-lg object-contain border border-[#D9DDE3] bg-white p-0.5"
-          />
-          <span className="font-extrabold text-[#171717] text-base tracking-tight uppercase">
-            Vanita Math Classes
-          </span>
-        </Link>
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#64748B] hover:text-[#C90019]"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Login
-        </Link>
-      </header>
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between">
+      <AuthHeader subtitle="Secure Account Recovery" currentPortal="student" />
 
       {/* Main Form */}
       <div className="max-w-md mx-auto w-full my-auto py-8">

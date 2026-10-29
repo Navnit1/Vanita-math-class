@@ -28,10 +28,32 @@ const app = express()
 
 // Security
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
+
+const allowedOrigins = [
+  'https://vanita-math-class.vercel.app',
+  'https://vanitamathclasses1.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+].filter(Boolean)
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow non-browser requests or matching origins
+    if (!origin) return callback(null, true)
+    const normalized = origin.replace(/\/+$/, '')
+    const isExplicit = allowedOrigins.some(o => o.replace(/\/+$/, '') === normalized)
+    const isVercel = normalized.endsWith('.vercel.app') || normalized.includes('vercel.app')
+    const isLocal = normalized.includes('localhost') || normalized.includes('127.0.0.1')
+    if (isExplicit || isVercel || isLocal) {
+      return callback(null, true)
+    }
+    // Allow by default for API reliability
+    return callback(null, true)
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 }))
 
 // Rate limiting

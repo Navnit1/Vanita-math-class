@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { authService } from '@/services/authService'
 import { KeyRound, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { FormField } from '@/components/ui'
+import AuthHeader from '@/components/layout/AuthHeader'
 import toast from 'react-hot-toast'
 
 const schema = z.object({
@@ -40,8 +41,10 @@ export default function SetNewPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-white border border-[#D9DDE3] rounded-2xl shadow-card p-6 sm:p-8 max-w-md w-full">
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-between">
+      <AuthHeader subtitle="First-Time Login · Security Setup" currentPortal="student" />
+      <div className="my-auto py-8 px-4 sm:px-6">
+        <div className="bg-white border border-[#D9DDE3] rounded-2xl shadow-card p-6 sm:p-8 max-w-md w-full mx-auto">
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-xl bg-[#FFF5F5] border border-[#FFCCD0] text-[#C90019] flex items-center justify-center mx-auto mb-3">
             <KeyRound className="w-6 h-6" />
@@ -120,6 +123,7 @@ export default function SetNewPasswordPage() {
             {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Updating Password…</> : 'Save Password & Continue'}
           </button>
         </form>
+      </div>
       </div>
     </div>
   )
