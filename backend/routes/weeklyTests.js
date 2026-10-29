@@ -6,6 +6,7 @@ import {
   saveTestMarks,
   getMyWeeklyTestResults,
   deleteWeeklyTest,
+  sendTestResultWhatsApp,
 } from '../controllers/weeklyTestController.js'
 import { protect, authorize } from '../middleware/auth.js'
 
@@ -20,6 +21,7 @@ router.get('/', authorize('admin'), getWeeklyTests)
 router.post('/', authorize('admin'), scheduleWeeklyTest)
 router.get('/:id/sheet', authorize('admin'), getTestSheet)
 router.post('/:id/marks', authorize('admin'), saveTestMarks)
+router.post('/:id/send-results-whatsapp', authorize('admin'), sendTestResultWhatsApp)
 router.delete('/:id', authorize('admin'), deleteWeeklyTest)
 
 export default router

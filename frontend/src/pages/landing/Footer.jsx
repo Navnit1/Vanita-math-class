@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Instagram, Facebook, Phone, MapPin, Mail, Shield, UserCheck } from 'lucide-react'
-import logo from '../../images/fab.jpeg'
+import { Phone, MapPin } from 'lucide-react'
 
 const COLUMNS = [
   {
@@ -41,21 +40,21 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-gray-900 text-gray-300 pt-16 pb-10 border-t border-gray-800">
+    <footer className="bg-[#171717] text-gray-300 pt-16 pb-10 border-t border-[#262626]">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12">
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="h-10 w-20 bg-white rounded-xl p-1 flex items-center justify-center shrink-0 shadow-md">
                 <img
-                  src={logo}
+                  src="/vmc-logo-official.png"
                   alt="Vanita Math Classes"
-                  className="w-10 h-10 object-contain"
+                  className="h-full w-auto object-contain"
                 />
               </div>
               <span className="font-extrabold text-white text-lg tracking-tight">
-                VANITA <span className="text-primary-500">MATH CLASSES</span>
+                VANITA <span className="text-[#E50914]">MATH CLASSES</span>
               </span>
             </div>
 
@@ -65,37 +64,15 @@ export default function Footer() {
 
             <div className="space-y-2 text-xs text-gray-400 pt-1">
               <p className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary-500 shrink-0" />
+                <MapPin className="w-4 h-4 text-[#E50914] shrink-0" />
                 #302, Phase-II, Vishal Nagar, Bathinda, Punjab
               </p>
               <p className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-primary-500 shrink-0" />
-                <a href="tel:+919815962612" className="hover:text-white transition-colors">
+                <Phone className="w-4 h-4 text-[#E50914] shrink-0" />
+                <a href="tel:+919815962612" className="hover:text-white transition-colors font-bold text-white">
                   +91 98159-62612
                 </a>
               </p>
-            </div>
-
-            {/* Socials */}
-            <div className="flex items-center gap-3 pt-2">
-              <a
-                href="https://www.instagram.com/vanitamathclasses"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-primary-600 transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-4 h-4" />
-              </a>
-              <a
-                href="https://www.facebook.com/VMCTuitions/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-primary-600 transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="w-4 h-4" />
-              </a>
             </div>
           </div>
 
@@ -129,7 +106,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-gray-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+        <div className="pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <p>© {new Date().getFullYear()} Vanita Math Classes (VMC). All rights reserved.</p>
           <p className="flex items-center gap-4">
             <span>Faculty: Vanita Rani Gupta (M.Sc., M.Phil., B.Ed.)</span>

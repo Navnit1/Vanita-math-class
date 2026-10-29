@@ -16,6 +16,7 @@ import {
   buildAdmissionCredentialsMessage,
   buildFeeReminderMessage
 } from '../services/whatsappService.js'
+import { getStandardMonthlyFee, normalizeStandard } from '../config/pricing.js'
 
 /**
  * PHASE 5: Searchable, Filterable Student Directory
@@ -140,6 +141,10 @@ export const approveStudent = async (req, res, next) => {
     if (!user) return next(createError(404, 'Linked user account not found'))
 
     student.status = 'active'
+    if (!student.monthlyFee || student.monthlyFee === 0) {
+      student.monthlyFee = getStandardMonthlyFee(student.class)
+      student.totalFee = Math.max(0, student.monthlyFee * 10 - (student.discount || 0))
+    }
     await student.save()
 
     // Mark any linked ContactInquiry records as enrolled
@@ -345,7 +350,8 @@ export const createStudent = async (req, res, next) => {
       if (existingUser) return next(createError(409, 'An account with this email already exists.'))
     }
 
-    const { studentId, username, tempPassword } = await generateStudentCredentials(targetName, targetClass)
+    const normClass = normalizeStandard(targetClass)
+    const { studentId, username, tempPassword } = await generateStudentCredentials(targetName, normClass)
 
     const accountEmail = email ? email.toLowerCase() : `${username}@vanitamaths.local`
     const user = await User.create({
@@ -359,9 +365,11 @@ export const createStudent = async (req, res, next) => {
       mustChangePassword: true,
     })
 
-    const mFee = Number(monthlyFee || 0)
-    const tFee = Number(totalFee || (mFee > 0 ? mFee * 10 : 0))
+    // Central authoritative monthly fee enforced server-side
+    const authoritativeMonthlyFee = getStandardMonthlyFee(normClass)
     const disc = Number(discount || 0)
+    const mFee = authoritativeMonthlyFee
+    const tFee = mFee * 10
 
     const student = await Student.create({
       studentId,
@@ -369,7 +377,7 @@ export const createStudent = async (req, res, next) => {
       fullName: targetName,
       email: accountEmail,
       phone,
-      class: targetClass,
+      class: normClass,
       section: section || '',
       batch: targetBatch,
       school: school || '',
@@ -421,9 +429,21 @@ export const updateStudent = async (req, res, next) => {
     if (!existingStudent) return next(createError(404, 'Student not found'))
 
     const updates = {
-      fullName, email, phone, class: cls, section, batch, school,
-      academicYear, parentName, parentPhone, monthlyFee, totalFee,
+      fullName, email, phone, section, batch, school,
+      academicYear, parentName, parentPhone,
       discount, feePlan, status, feeStatus, address, dateOfBirth, course, notes,
+    }
+
+    if (cls) {
+      const normClass = normalizeStandard(cls)
+      updates.class = normClass
+      // Server-side authoritative fee enforcement for class
+      updates.monthlyFee = getStandardMonthlyFee(normClass)
+      const currentDisc = discount != null ? Number(discount) : (existingStudent.discount || 0)
+      updates.totalFee = Math.max(0, updates.monthlyFee * 10 - currentDisc)
+    } else if (monthlyFee) {
+      // Retain standard fee for verified class
+      updates.monthlyFee = getStandardMonthlyFee(existingStudent.class)
     }
     Object.keys(updates).forEach(k => updates[k] === undefined && delete updates[k])
 

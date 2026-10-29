@@ -44,8 +44,28 @@ export default function TestReportsAdmin() {
   const [marksSheet, setMarksSheet] = useState([])
   const [sheetSearch, setSheetSearch] = useState('')
   const [isDirty, setIsDirty] = useState(false)
+  const [whatsappModalData, setWhatsappModalData] = useState(null)
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false)
 
   const qc = useQueryClient()
+
+  const handleSendWhatsAppResults = async (targetStudentId = null) => {
+    try {
+      setIsSendingWhatsApp(true)
+      const payload = targetStudentId ? { studentId: targetStudentId } : { studentIds: marksSheet.map(r => r.studentId) }
+      const res = await weeklyTestService.sendResultsWhatsApp(selectedTestId, payload)
+      if (res.data?.successCount > 0) {
+        toast.success(`Dispatched ${res.data.successCount} result messages via WhatsApp Cloud API!`)
+      } else {
+        toast(`WhatsApp Cloud API not active. ${res.data?.dispatches?.length || 0} manual links generated.`, { icon: 'ℹ️' })
+      }
+      setWhatsappModalData(res.data)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to dispatch WhatsApp results')
+    } finally {
+      setIsSendingWhatsApp(false)
+    }
+  }
 
   // 1. Fetch all created weekly tests
   const { data: testsData, isLoading: testsLoading } = useQuery({
@@ -765,23 +785,100 @@ export default function TestReportsAdmin() {
               </div>
 
               {/* Bottom Save Bar */}
-              <div className="p-4 bg-[#FAFAFA] border-t border-[#D9DDE3] flex items-center justify-between">
+              <div className="p-4 bg-[#FAFAFA] border-t border-[#D9DDE3] flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs text-[#64748B]">
                   Showing {filteredSheet.length} of {marksSheet.length} students enrolled in Class {currentTest?.class}.
                 </span>
-                <button
-                  onClick={handleSaveMarks}
-                  disabled={saveMarksMutation.isPending}
-                  className="btn btn-primary btn-sm flex items-center gap-1.5 font-bold shadow-red-glow"
-                >
-                  {saveMarksMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Save All Marks
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSendWhatsAppResults()}
+                    disabled={isSendingWhatsApp || isDirty || marksSheet.length === 0}
+                    className="btn btn-secondary btn-sm flex items-center gap-1.5 font-bold text-xs text-[#059669] hover:bg-emerald-50 border-[#059669]/30"
+                    title="Send individual test results via WhatsApp to parents/students"
+                  >
+                    <Send className="w-3.5 h-3.5 text-[#059669]" />
+                    {isSendingWhatsApp ? 'Sending Results…' : 'Send Results via WhatsApp'}
+                  </button>
+
+                  <button
+                    onClick={handleSaveMarks}
+                    disabled={saveMarksMutation.isPending}
+                    className="btn btn-primary btn-sm flex items-center gap-1.5 font-bold shadow-red-glow"
+                  >
+                    {saveMarksMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save All Marks
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
       )}
+
+      {/* WHATSAPP RESULTS DISPATCH STATUS MODAL */}
+      <Modal
+        isOpen={Boolean(whatsappModalData)}
+        onClose={() => setWhatsappModalData(null)}
+        title="WhatsApp Test Results Distribution"
+        size="md"
+      >
+        <div className="p-6 space-y-4">
+          <div className="p-3 bg-[#FAFAFA] border border-[#D9DDE3] rounded-xl flex items-center justify-between text-xs">
+            <div>
+              <p className="font-bold text-[#171717]">{currentTest?.title}</p>
+              <p className="text-[#64748B]">Class {currentTest?.class} · Max Marks: {currentTest?.maxMarks}M</p>
+            </div>
+            <div className="text-right">
+              <span className="font-mono font-bold text-sm text-[#059669]">
+                {whatsappModalData?.successCount} / {whatsappModalData?.total}
+              </span>
+              <p className="text-[10px] text-[#64748B]">Delivered via Cloud API</p>
+            </div>
+          </div>
+
+          <div className="max-h-72 overflow-y-auto divide-y divide-[#F3F4F6] border border-[#D9DDE3] rounded-xl">
+            {(whatsappModalData?.dispatches || []).map((d) => (
+              <div key={d.studentId} className="p-3 flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0">
+                  <p className="font-bold text-[#171717] truncate">{d.name}</p>
+                  <p className="text-[#64748B] text-[11px] font-mono">
+                    Roll: {d.studentId} · {d.phone || 'No phone registered'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant={d.success ? 'green' : d.status === 'missing_phone' ? 'yellow' : 'slate'} className="text-[10px]">
+                    {d.success ? 'Sent (Cloud API)' : d.status}
+                  </Badge>
+
+                  {d.directLink && (
+                    <a
+                      href={d.directLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary btn-xs text-[#059669] hover:bg-emerald-50 flex items-center gap-1"
+                      title="Open WhatsApp chat with pre-filled result"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Manual
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() => setWhatsappModalData(null)}
+              className="btn btn-primary btn-sm text-xs font-bold"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* DELETE TEST CONFIRMATION DIALOG */}
       <ConfirmDialog

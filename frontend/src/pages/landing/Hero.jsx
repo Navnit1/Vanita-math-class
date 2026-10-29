@@ -48,22 +48,36 @@ export default function Hero() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-8 flex flex-wrap items-center gap-4"
+            className="mt-8 flex flex-wrap items-center gap-3 sm:gap-4"
           >
             <a
               href="#contact"
-              className="btn btn-primary px-7 py-3.5 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-2 rounded-xl"
+              className="btn btn-primary px-6 py-3 text-sm font-bold shadow-red-glow flex items-center gap-2 rounded-xl"
             >
-              Enquire for Admission
+              Submit Enquiry
               <ArrowRight className="w-4 h-4" />
             </a>
 
+            <Link
+              to="/register"
+              className="btn btn-secondary px-5 py-3 text-sm font-bold flex items-center gap-2 rounded-xl border-[#D9DDE3]"
+            >
+              Register
+            </Link>
+
+            <Link
+              to="/login"
+              className="btn btn-outline px-5 py-3 text-sm font-bold text-[#E50914] border-[#FFCCD0] hover:bg-[#FFF5F5] flex items-center gap-2 rounded-xl"
+            >
+              Student Login
+            </Link>
+
             <a
               href="tel:+919815962612"
-              className="btn btn-outline border-gray-300 text-gray-800 hover:bg-gray-50 px-6 py-3.5 text-sm font-bold flex items-center gap-2 rounded-xl"
+              className="px-4 py-3 text-xs font-bold text-[#64748B] hover:text-[#171717] flex items-center gap-1.5 transition-colors"
             >
-              <Phone className="w-4 h-4 text-primary-600" />
-              Call 98159-62612
+              <Phone className="w-3.5 h-3.5 text-[#E50914]" />
+              98159-62612
             </a>
           </motion.div>
 

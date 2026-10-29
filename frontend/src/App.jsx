@@ -14,6 +14,7 @@ const SetNewPasswordPage = lazy(() => import('@/pages/auth/SetNewPasswordPage'))
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
 const Inquiries = lazy(() => import('@/pages/admin/Inquiries'))
 const ManageStudents = lazy(() => import('@/pages/admin/ManageStudents'))
+const BatchesAdmin = lazy(() => import('@/pages/admin/BatchesAdmin'))
 const TestReportsAdmin = lazy(() => import('@/pages/admin/TestReportsAdmin'))
 const FeeManagement = lazy(() => import('@/pages/admin/FeeManagement'))
 const PaymentManagement = lazy(() => import('@/pages/admin/PaymentManagement'))
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/inquiries" element={<ProtectedRoute roles={['admin']}><Inquiries /></ProtectedRoute>} />
         <Route path="/admin/students" element={<ProtectedRoute roles={['admin']}><ManageStudents /></ProtectedRoute>} />
+        <Route path="/admin/batches" element={<ProtectedRoute roles={['admin']}><BatchesAdmin /></ProtectedRoute>} />
         <Route path="/admin/test-reports" element={<ProtectedRoute roles={['admin']}><TestReportsAdmin /></ProtectedRoute>} />
         <Route path="/admin/fees" element={<ProtectedRoute roles={['admin']}><FeeManagement /></ProtectedRoute>} />
         <Route path="/admin/payments" element={<ProtectedRoute roles={['admin']}><PaymentManagement /></ProtectedRoute>} />

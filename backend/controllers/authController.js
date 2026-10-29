@@ -10,6 +10,7 @@ import { recordAudit } from '../utils/auditLog.js'
 import logger from '../utils/logger.js'
 import { sendPasswordResetOtpEmail, sendEmail, isEmailConfigured, getEmailStatus } from '../services/emailService.js'
 import { notifyAdminWhatsApp, buildAdminNewRegistrationAlert } from '../services/whatsappService.js'
+import { getStandardMonthlyFee, normalizeStandard } from '../config/pricing.js'
 
 export const login = async (req, res, next) => {
   try {
@@ -86,7 +87,8 @@ export const register = async (req, res, next) => {
       return next(createError(409, 'This phone number is already registered for an existing student. Please log in or contact the institute.'))
     }
 
-    const targetClass = studentClass || '8th'
+    const targetClass = normalizeStandard(studentClass || '8th')
+    const authoritativeMonthlyFee = getStandardMonthlyFee(targetClass)
     const targetBatch = batch || 'Evening'
     const { studentId, username } = await generateStudentCredentials(name, targetClass)
 
@@ -116,6 +118,11 @@ export const register = async (req, res, next) => {
       address: (address || '').trim(),
       status: 'inactive', // inactive until admin approves admission
       feeStatus: 'pending',
+      monthlyFee: authoritativeMonthlyFee,
+      totalFee: authoritativeMonthlyFee * 10,
+      paidFee: 0,
+      discount: 0,
+      feePlan: 'monthly',
     })
 
     // Deliberate, documented 1:1 mapping: Create linked ContactInquiry record

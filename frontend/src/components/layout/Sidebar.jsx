@@ -7,32 +7,33 @@ import { cn } from '@/lib/utils'
 import { Avatar } from '@/components/ui'
 import {
   LayoutDashboard, Users, DollarSign, BookOpen, Bell, Calendar,
-  LogOut, Menu, X, ClipboardList, BarChart3,
-  Settings, UserCheck, Mail, ClipboardCheck, Phone, Shield
+  LogOut, ClipboardList, Settings, UserCheck, Mail,
+  ClipboardCheck, Phone, PlusCircle, CreditCard, PenTool,
+  Upload, GraduationCap, Shield, Sparkles
 } from 'lucide-react'
 
+// Official Admin Navigation (in requested order)
 const ADMIN_NAV = [
   { label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
-  { label: 'Enquiries', icon: Mail, to: '/admin/inquiries' },
   { label: 'Students', icon: Users, to: '/admin/students' },
-  { label: 'Weekly Tests & Marks', icon: ClipboardCheck, to: '/admin/test-reports' },
-  { label: 'Fee Management', icon: DollarSign, to: '/admin/fees' },
-  { label: 'Receipts & Payments', icon: ClipboardList, to: '/admin/payments' },
-  { label: 'Math Notes (PDFs)', icon: BookOpen, to: '/admin/materials' },
-  { label: 'Attendance', icon: Calendar, to: '/admin/attendance' },
-  { label: 'Announcements', icon: Bell, to: '/admin/announcements' },
-  { label: 'Reports', icon: BarChart3, to: '/admin/reports' },
+  { label: 'Weekly Tests', icon: ClipboardCheck, to: '/admin/test-reports' },
+  { label: 'Math Notes', icon: BookOpen, to: '/admin/materials' },
+  { label: 'Batches', icon: GraduationCap, to: '/admin/batches' },
+  { label: 'Fee Ledger', icon: CreditCard, to: '/admin/payments' },
+  { label: 'Due Fees', icon: DollarSign, to: '/admin/fees' },
+  { label: 'Enquiries', icon: Mail, to: '/admin/inquiries', badgeKey: 'inquiries' },
   { label: 'Settings', icon: Settings, to: '/admin/settings' },
 ]
 
+// Official Student Navigation
 const STUDENT_NAV = [
-  { label: 'My Dashboard', icon: LayoutDashboard, to: '/dashboard' },
-  { label: 'Weekly Tests & Results', icon: ClipboardCheck, to: '/dashboard/test-reports' },
-  { label: 'My Fees & Dues', icon: DollarSign, to: '/dashboard/fees' },
-  { label: 'Payment Receipts', icon: ClipboardList, to: '/dashboard/payments' },
-  { label: 'Math Notes (PDFs)', icon: BookOpen, to: '/dashboard/materials' },
+  { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
+  { label: 'Weekly Tests', icon: ClipboardCheck, to: '/dashboard/test-reports' },
+  { label: 'My Fees', icon: DollarSign, to: '/dashboard/fees' },
+  { label: 'Receipts', icon: CreditCard, to: '/dashboard/payments' },
+  { label: 'Math Notes', icon: BookOpen, to: '/dashboard/materials' },
   { label: 'Attendance', icon: Calendar, to: '/dashboard/attendance' },
-  { label: 'Notice Board', icon: Bell, to: '/dashboard/notices' },
+  { label: 'Notices', icon: Bell, to: '/dashboard/notices', badgeKey: 'notices' },
   { label: 'My Profile', icon: UserCheck, to: '/dashboard/profile' },
   { label: 'Settings', icon: Settings, to: '/dashboard/settings' },
 ]
@@ -41,7 +42,6 @@ export default function Sidebar({ children }) {
   const { user, isAdmin, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
 
   const nav = isAdmin ? ADMIN_NAV : STUDENT_NAV
 
@@ -58,7 +58,7 @@ export default function Sidebar({ children }) {
     queryKey: ['inquiries', 'new-badge'],
     queryFn: () => contactService.getAll({ status: 'new', limit: 1 }),
     enabled: Boolean(isAdmin),
-    refetchInterval: 30000,
+    refetchInterval: 20000,
   })
   const newInquiries = inquiriesData?.total ?? 0
 
@@ -67,161 +67,183 @@ export default function Sidebar({ children }) {
     navigate('/login')
   }
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white border-r border-[#D9DDE3]">
-      {/* Official VMC Branded Red Gradient Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#8A000F] bg-gradient-to-r from-[#E50914] via-[#C90019] to-[#990012] text-white shadow-xs">
-        <div className="h-10 w-14 bg-white/10 border border-white/25 rounded-lg p-1 flex items-center justify-center shrink-0">
-          <img
-            src="/vmc-logo-white.svg"
-            alt="VMC Logo"
-            className="h-8 w-auto object-contain drop-shadow"
-          />
-        </div>
-        <div className="min-w-0">
-          <p className="font-black text-white text-sm leading-tight tracking-tight font-serif uppercase">
-            Vanita Math Classes
-          </p>
-          <p className="text-[11px] font-semibold text-red-100 flex items-center gap-1 mt-0.5">
-            <span>Maths 8th–+2</span>
-            <span className="text-white/60">·</span>
-            <span className="text-white/80 font-normal truncate">Bathinda</span>
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {nav.map(item => {
-          const active = location.pathname === item.to || (item.to !== '/admin' && item.to !== '/dashboard' && location.pathname.startsWith(item.to))
-          const isAnnouncement = item.icon === Bell
-          const isInquiry = item.icon === Mail
-
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
-                active
-                  ? 'bg-[#FFF5F5] text-[#C90019] font-semibold border-l-4 border-[#E50914] pl-2.5 shadow-xs'
-                  : 'text-[#64748B] hover:bg-[#F3F4F6] hover:text-[#171717]'
-              )}
-            >
-              <item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-[#E50914]' : 'text-[#64748B]')} />
-              <span className="flex-1 truncate">{item.label}</span>
-
-              {isAnnouncement && unreadAnnouncements > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#E50914] text-white text-[10px] font-bold">
-                  {unreadAnnouncements > 9 ? '9+' : unreadAnnouncements}
-                </span>
-              )}
-
-              {isInquiry && newInquiries > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#E50914] text-white text-[10px] font-bold">
-                  {newInquiries}
-                </span>
-              )}
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Faculty / Contact Footer Pill */}
-      <div className="px-4 py-2.5 mx-3 mb-2 rounded-lg bg-[#FAFAFA] border border-[#D9DDE3]">
-        <p className="text-[11px] font-bold text-[#171717]">Vanita Rani Gupta</p>
-        <p className="text-[10px] text-[#64748B]">M.Sc., M.Phil., B.Ed. (17+ Yrs)</p>
-        <a href="tel:9815962612" className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-[#E50914] hover:underline">
-          <Phone className="w-3 h-3" /> 98159-62612
-        </a>
-      </div>
-
-      {/* User profile & Logout */}
-      <div className="p-3 border-t border-[#D9DDE3] bg-[#FAFAFA]">
-        <div className="flex items-center gap-3 px-2 py-1.5">
-          <Avatar name={user?.name || 'User'} src={user?.profilePhoto} size="sm" />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-[#171717] truncate">{user?.name}</p>
-            <p className="text-[10px] font-medium text-[#64748B] truncate capitalize">
-              {isAdmin ? 'Administrator' : `Class ${user?.profile?.class || 'Student'}`}
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            title="Sign out"
-            className="p-1.5 rounded-lg text-[#64748B] hover:text-[#C90019] hover:bg-[#FFF5F5] transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col lg:flex-row">
-      {/* Mobile Sticky Red Gradient Header */}
-      <header className="lg:hidden sticky top-0 z-40 bg-gradient-to-r from-[#E50914] via-[#C90019] to-[#990012] text-white border-b border-[#8A000F] px-4 py-3 flex items-center justify-between shadow-md">
-        <Link to={isAdmin ? '/admin' : '/dashboard'} className="flex items-center gap-2.5">
-          <div className="h-8 w-12 bg-white/10 border border-white/30 rounded-md p-0.5 flex items-center justify-center shrink-0">
-            <img src="/vmc-logo-white.svg" alt="VMC Logo" className="h-6 w-auto object-contain" />
+    <div className="min-h-screen bg-[#F7F7F8] flex flex-col font-sans">
+      {/* ─────────────────────────────────────────────────────────────
+          1. TOP RICH RED HORIZONTAL GRADIENT BRANDING HEADER
+          Transitions from bright scarlet (#F00020) to deep red (#BD0010)
+         ───────────────────────────────────────────────────────────── */}
+      <header className="w-full bg-gradient-to-r from-[#F00020] via-[#D80016] to-[#BD0010] text-white shadow-md border-b border-[#99000D] px-4 sm:px-6 lg:px-8 py-3">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Left: VMC Logo + Branding + Faculty Info */}
+          <div className="flex items-center gap-3.5 sm:gap-4 shrink-0">
+            {/* White rounded rectangular container for VMC logo */}
+            <Link
+              to={isAdmin ? '/admin' : '/dashboard'}
+              className="h-11 w-20 sm:h-12 sm:w-24 bg-white rounded-xl p-1.5 flex items-center justify-center transition-transform hover:scale-102 shadow-md shrink-0"
+              title="Vanita Math Classes"
+            >
+              <img
+                src="/vmc-logo-official.png"
+                alt="Vanita Math Classes"
+                className="h-full w-auto object-contain"
+              />
+            </Link>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Link
+                  to={isAdmin ? '/admin' : '/dashboard'}
+                  className="font-black text-white text-base sm:text-xl tracking-tight leading-tight uppercase font-serif drop-shadow-xs truncate hover:underline"
+                >
+                  Vanita Math Classes
+                </Link>
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-extrabold uppercase tracking-wider">
+                  {isAdmin ? 'Admin Portal' : 'Student Portal'}
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-red-100 font-medium truncate mt-0.5">
+                Mathematics tuition classes for 8th, 9th, 10th, +1 and +2
+              </p>
+              <p className="text-[10px] sm:text-[11px] text-white/80 hidden md:block">
+                Faculty: <strong>Vanita Rani Gupta</strong> (M.Sc., M.Phil., B.Ed., 17+ Yrs Exp) · Bathinda
+              </p>
+            </div>
           </div>
-          <div>
-            <span className="font-black text-white text-sm tracking-tight block leading-tight font-serif">
-              VANITA MATH CLASSES
-            </span>
-            <span className="text-[10px] text-red-100 block font-medium">
-              {isAdmin ? 'Administrator Portal' : 'Student Portal'}
-            </span>
+
+          {/* Right: Admin Quick Action Buttons + User Profile */}
+          <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2 sm:gap-3 shrink-0 pt-1 lg:pt-0 border-t border-white/15 lg:border-t-0">
+            {/* Admin Quick Operations Pills */}
+            {isAdmin && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => navigate('/admin/fees?action=record')}
+                  className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-2xs"
+                  title="Record fee payment"
+                >
+                  <CreditCard className="w-3 h-3 text-red-200" />
+                  <span>Record Fee</span>
+                </button>
+
+                <button
+                  onClick={() => navigate('/admin/students?action=new')}
+                  className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-2xs"
+                  title="Enroll a new student"
+                >
+                  <PlusCircle className="w-3 h-3 text-red-200" />
+                  <span>Add Student</span>
+                </button>
+
+                <button
+                  onClick={() => navigate('/admin/test-reports?tab=marks')}
+                  className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-2xs"
+                  title="Input weekly test marks"
+                >
+                  <PenTool className="w-3 h-3 text-red-200" />
+                  <span>Input Marks</span>
+                </button>
+
+                <button
+                  onClick={() => navigate('/admin/materials?action=upload')}
+                  className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-2xs hidden sm:flex"
+                  title="Upload class PDF notes"
+                >
+                  <Upload className="w-3 h-3 text-red-200" />
+                  <span>Upload Notes</span>
+                </button>
+              </div>
+            )}
+
+            {/* User Profile Pill & Logout */}
+            <div className="flex items-center gap-2 pl-2 border-l border-white/20">
+              <Avatar name={user?.name || 'User'} src={user?.profilePhoto} size="sm" className="border border-white/40 shadow-xs" />
+              <div className="text-left hidden sm:block">
+                <p className="text-xs font-bold text-white leading-tight truncate max-w-[120px]">
+                  {user?.name || 'Admin'}
+                </p>
+                <p className="text-[10px] text-red-200 truncate">
+                  {isAdmin ? 'Administrator' : `Roll: ${user?.profile?.studentId || 'Student'}`}
+                </p>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                title="Sign out of portal"
+                aria-label="Logout"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        </Link>
-        <button
-          onClick={() => setOpen(true)}
-          className="p-2 rounded-lg text-white hover:bg-white/15 transition-colors"
-          aria-label="Open navigation menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+        </div>
       </header>
 
-      {/* Mobile Drawer */}
-      {open && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative w-72 max-w-[85vw] h-full z-10 shadow-xl animate-slide-up">
-            <SidebarContent />
-          </div>
-        </div>
-      )}
+      {/* ─────────────────────────────────────────────────────────────
+          2. SUB-HEADER TOP-NAVIGATION BAR (Light-gray #F3F4F6)
+          White rounded rectangular buttons with dark selected state
+         ───────────────────────────────────────────────────────────── */}
+      <nav className="w-full bg-[#F3F4F6] border-b border-[#D9DDE3] px-4 sm:px-6 lg:px-8 py-2 sticky top-0 z-30 shadow-xs">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2">
+          {/* Navigation Pill Buttons (wrap neatly on narrower screens) */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {nav.map((item) => {
+              const isExact = location.pathname === item.to
+              const isNested = item.to !== '/admin' && item.to !== '/dashboard' && location.pathname.startsWith(item.to)
+              const active = isExact || isNested
 
-      {/* Desktop Sidebar (Fixed Left) */}
-      <aside className="hidden lg:block w-64 h-screen sticky top-0 shrink-0">
-        <SidebarContent />
-      </aside>
+              let badgeCount = 0
+              if (item.badgeKey === 'inquiries') badgeCount = newInquiries
+              if (item.badgeKey === 'notices') badgeCount = unreadAnnouncements
 
-      {/* Main Content Area */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-        {/* Desktop Portal Branded Bar */}
-        <div className="hidden lg:flex items-center justify-between px-5 py-3 mb-6 rounded-xl bg-white border border-[#D9DDE3] shadow-xs">
-          <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#E50914] animate-pulse" />
-            <span className="text-xs font-bold text-[#171717] tracking-wider uppercase">
-              {isAdmin ? 'Administrator Portal · Vanita Math Classes' : `Student Learning Portal · Class ${user?.profile?.class || ''}`}
-            </span>
-            <span className="px-2 py-0.5 rounded-md bg-[#FFF5F5] border border-[#FFCCD0] text-[#C90019] text-[10px] font-extrabold uppercase">
-              {isAdmin ? 'Admin' : 'Student'}
-            </span>
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs',
+                    active
+                      ? 'bg-[#1E293B] text-white border border-[#1E293B] font-bold'
+                      : 'bg-white text-[#171717] border border-[#D9DDE3] hover:border-[#E50914] hover:text-[#E50914] hover:bg-white'
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      'w-3.5 h-3.5 shrink-0 transition-colors',
+                      active ? 'text-[#FBBF24]' : 'text-[#64748B]'
+                    )}
+                  />
+                  <span>{item.label}</span>
+
+                  {badgeCount > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-[#E50914] text-white text-[10px] font-black shrink-0">
+                      {badgeCount > 9 ? '9+' : badgeCount}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
           </div>
-          <div className="flex items-center gap-5 text-xs text-[#64748B]">
-            <span className="flex items-center gap-1 font-medium">
-              📍 #302, Phase-II, Vishal Nagar, Bathinda
+
+          {/* Right Session & Contact Indicator */}
+          <div className="hidden lg:flex items-center gap-3 text-xs text-[#64748B] shrink-0 font-medium">
+            <span className="px-2.5 py-1 rounded-md bg-white border border-[#D9DDE3] text-[#171717] font-bold text-[11px]">
+              Academic Session 2026–2027
             </span>
-            <a href="tel:9815962612" className="flex items-center gap-1 font-bold text-[#E50914] hover:underline">
-              <Phone className="w-3.5 h-3.5" /> 98159-62612
+            <a
+              href="tel:9815962612"
+              className="flex items-center gap-1 text-[#E50914] font-bold hover:underline"
+            >
+              <Phone className="w-3 h-3" /> 98159-62612
             </a>
           </div>
         </div>
+      </nav>
+
+      {/* ─────────────────────────────────────────────────────────────
+          3. MAIN CONTENT CONTAINER (Spacious, responsive, clean)
+         ───────────────────────────────────────────────────────────── */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </main>
     </div>

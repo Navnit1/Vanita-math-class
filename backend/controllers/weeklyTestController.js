@@ -7,6 +7,7 @@ import { recordAudit } from '../utils/auditLog.js'
 import logger from '../utils/logger.js'
 import {
   sendMetaWhatsAppMessage,
+  createDirectWhatsAppLink,
   buildTestAnnouncementMessage
 } from '../services/whatsappService.js'
 
@@ -467,6 +468,114 @@ export const deleteWeeklyTest = async (req, res, next) => {
     })
 
     sendResponse(res, 200, null, 'Weekly test and associated records deleted.')
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * Send weekly test results via Meta WhatsApp Cloud API (with direct manual link fallback)
+ * Supports single studentId or array of studentIds.
+ */
+export const sendTestResultWhatsApp = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const { studentId, studentIds } = req.body
+
+    const test = await WeeklyTest.findById(id)
+    if (!test) return next(createError(404, 'Weekly test not found'))
+
+    const targetStudentIds = studentIds || (studentId ? [studentId] : [])
+    if (!targetStudentIds.length) {
+      return next(createError(400, 'Please select at least one student recipient.'))
+    }
+
+    const results = await TestResult.find({
+      testId: test._id,
+      studentId: { $in: targetStudentIds }
+    }).populate('studentId', 'fullName studentId phone parentPhone class batch')
+
+    if (!results.length) {
+      return next(createError(404, 'No test result records found for the selected students.'))
+    }
+
+    const dispatches = []
+
+    for (const r of results) {
+      const student = r.studentId
+      if (!student) continue
+
+      const targetPhone = student.parentPhone || student.phone
+      if (!targetPhone) {
+        dispatches.push({
+          studentId: student.studentId,
+          name: student.fullName,
+          phone: null,
+          status: 'missing_phone',
+          success: false,
+          directLink: null,
+        })
+        continue
+      }
+
+      const isAbsent = r.attendance === 'absent'
+      const marksText = isAbsent ? 'Absent' : `${r.marksObtained}/${test.maxMarks} (${r.percentage}%)`
+      const resultVerdict = isAbsent ? 'Absent' : (r.result ? r.result.toUpperCase() : (r.percentage >= 40 ? 'PASSED' : 'NEEDS PRACTICE'))
+
+      const messageText = `📊 *VANITA MATH CLASSES — WEEKLY TEST RESULT*
+
+Dear Parent / Student,
+Here is the performance report for:
+
+👤 *Student:* ${student.fullName} (Roll: ${student.studentId})
+📝 *Test:* ${test.title}
+📚 *Class:* Class ${test.class} (${test.batch || 'Regular'})
+🎯 *Marks Scored:* ${marksText}
+🏆 *Result Status:* ${resultVerdict}
+${r.remarks ? `💬 *Faculty Remarks:* ${r.remarks}\n` : ''}
+🌐 *Portal Details:* https://vanita-math-class.vercel.app/login
+
+— *Vanita Rani Gupta*
+Vanita Math Classes, Bathinda | 📞 98159-62612`
+
+      const directLink = createDirectWhatsAppLink(targetPhone, messageText)
+
+      let apiResult = { success: false, status: 'unattempted' }
+      try {
+        apiResult = await sendMetaWhatsAppMessage({
+          to: targetPhone,
+          text: messageText,
+        })
+      } catch (err) {
+        apiResult = { success: false, status: 'api_error', message: err.message }
+      }
+
+      dispatches.push({
+        studentId: student.studentId,
+        name: student.fullName,
+        phone: targetPhone,
+        status: apiResult.status,
+        success: apiResult.success,
+        directLink,
+      })
+    }
+
+    const successCount = dispatches.filter(d => d.success).length
+
+    recordAudit({
+      action: 'weekly_test.send_results_whatsapp',
+      user: req.user,
+      targetType: 'WeeklyTest',
+      targetId: test._id,
+      description: `Sent WhatsApp results for "${test.title}" to ${dispatches.length} students (${successCount} accepted by provider)`,
+      req,
+    })
+
+    sendResponse(res, 200, {
+      total: dispatches.length,
+      successCount,
+      dispatches,
+    }, `Processed WhatsApp result notifications for ${dispatches.length} students.`)
   } catch (err) {
     next(err)
   }

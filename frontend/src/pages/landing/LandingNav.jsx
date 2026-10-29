@@ -69,11 +69,11 @@ export default function LandingNav() {
         <nav className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
           {/* Brand Logo & Name */}
           <Link to="/" className="flex items-center gap-3 sm:gap-4 group shrink-0">
-            <div className="h-11 w-16 sm:h-12 sm:w-20 bg-white/10 hover:bg-white/15 backdrop-blur-xs border border-white/30 rounded-xl p-1 flex items-center justify-center transition-all shadow-inner">
+            <div className="h-10 w-20 sm:h-12 sm:w-24 bg-white rounded-xl p-1.5 flex items-center justify-center transition-all shadow-md">
               <img
-                src="/vmc-logo-white.svg"
+                src="/vmc-logo-official.png"
                 alt="Vanita Math Classes logo"
-                className="h-9 sm:h-10 w-auto object-contain drop-shadow"
+                className="h-full w-auto object-contain"
               />
             </div>
             <div>
@@ -87,40 +87,51 @@ export default function LandingNav() {
           </Link>
 
           {/* Center Navigation Links */}
-          <div className="hidden xl:flex items-center gap-1">
+          <div className="hidden 2xl:flex items-center gap-1">
             {LINKS.map((l) => (
               <button
                 key={l.href}
                 onClick={() => goTo(l.href)}
-                className="px-3 py-1.5 text-xs font-bold text-white/90 hover:text-white hover:bg-white/15 rounded-lg transition-all"
+                className="px-2.5 py-1.5 text-xs font-bold text-white/90 hover:text-white hover:bg-white/15 rounded-lg transition-all"
               >
                 {l.label}
               </button>
             ))}
           </div>
 
-          {/* Right Action / Portal Links */}
-          <div className="hidden lg:flex items-center gap-2.5 shrink-0">
-            <a
-              href="tel:+919815962612"
-              className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/25 px-3 py-2 rounded-lg transition-colors"
+          {/* Right Action / 4 Core Entry Options */}
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            {/* 1. Submit Enquiry */}
+            <button
+              onClick={() => goTo('#contact')}
+              className="px-3 py-1.5 text-xs font-bold text-white/95 hover:text-white hover:bg-white/15 rounded-lg border border-white/25 transition-all"
             >
-              <Phone className="w-3.5 h-3.5 text-red-200" />
-              98159-62612
-            </a>
+              Enquire
+            </button>
 
+            {/* 2. Register */}
             <Link
-              to="/admin-login"
-              className="px-3 py-2 text-xs font-bold text-white/95 hover:text-white border border-white/35 rounded-lg hover:bg-white/15 transition-colors flex items-center gap-1.5"
+              to="/register"
+              className="px-3 py-1.5 text-xs font-bold text-white/95 hover:text-white hover:bg-white/15 rounded-lg border border-white/30 transition-all"
             >
-              <Shield className="w-3.5 h-3.5 text-red-200" /> Admin
+              Register
             </Link>
 
+            {/* 3. Student Login */}
             <Link
               to="/login"
-              className="bg-white text-[#C90019] hover:bg-red-50 px-4 py-2 text-xs font-black rounded-lg transition-all shadow-sm flex items-center gap-1.5 hover:shadow"
+              className="bg-white text-[#C90019] hover:bg-red-50 px-3.5 py-1.5 text-xs font-extrabold rounded-lg transition-all shadow-sm flex items-center gap-1.5"
             >
               <UserCheck className="w-3.5 h-3.5 text-[#E50914]" /> Student Login
+            </Link>
+
+            {/* 4. Admin Login */}
+            <Link
+              to="/admin-login"
+              className="px-2.5 py-1.5 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors flex items-center gap-1"
+              title="Administrator Portal"
+            >
+              <Shield className="w-3.5 h-3.5 text-red-200" /> Admin
             </Link>
           </div>
 
@@ -138,7 +149,7 @@ export default function LandingNav() {
         {open && (
           <div className="lg:hidden bg-white text-[#171717] border-t border-[#D9DDE3] px-5 py-4 space-y-2 shadow-2xl animate-in slide-in-from-top-2">
             <div className="pb-3 mb-2 border-b border-gray-100 flex items-center gap-3">
-              <img src="/vmc-logo.svg" alt="VMC Logo" className="h-8 w-auto" />
+              <img src="/vmc-logo-official.png" alt="VMC Logo" className="h-9 w-auto object-contain rounded-md" />
               <div>
                 <p className="font-extrabold text-[#171717] text-sm">VANITA MATH CLASSES</p>
                 <p className="text-[11px] text-[#64748B]">8th, 9th, 10th, +1 & +2 · Bathinda</p>

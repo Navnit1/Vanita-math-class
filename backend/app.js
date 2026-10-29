@@ -19,6 +19,7 @@ import adminRoutes from './routes/admin.js'
 import contactRoutes from './routes/contact.js'
 import testReportRoutes from './routes/testReports.js'
 import weeklyTestRoutes from './routes/weeklyTests.js'
+import batchRoutes from './routes/batches.js'
 
 import { notFound, errorHandler } from './middleware/errorHandler.js'
 import logger from './utils/logger.js'
@@ -106,6 +107,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/test-reports', testReportRoutes)
 app.use('/api/weekly-tests', weeklyTestRoutes)
+app.use('/api/batches', batchRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

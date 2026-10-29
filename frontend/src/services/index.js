@@ -60,11 +60,16 @@ export const studentService = {
   },
 }
 
+export const batchService = {
+  getAll: async () => { const { data } = await api.get('/batches'); return data.data },
+}
+
 export const weeklyTestService = {
   getAll: async (params) => { const { data } = await api.get('/weekly-tests', { params }); return data.data },
   schedule: async (payload) => { const { data } = await api.post('/weekly-tests', payload); return data.data },
   getSheet: async (id) => { const { data } = await api.get(`/weekly-tests/${id}/sheet`); return data.data },
   saveMarks: async (id, marksList) => { const { data } = await api.post(`/weekly-tests/${id}/marks`, { marksList }); return data.data },
+  sendResultsWhatsApp: async (id, payload) => { const { data } = await api.post(`/weekly-tests/${id}/send-results-whatsapp`, payload); return data },
   getMyResults: async () => { const { data } = await api.get('/weekly-tests/my-results'); return data.data },
   delete: async (id) => { const { data } = await api.delete(`/weekly-tests/${id}`); return data },
 }

@@ -7,11 +7,11 @@ export default function AuthHeader({ subtitle = 'Classes 8th, 9th, 10th, +1 & +2
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo & Name */}
         <Link to="/" className="flex items-center gap-3 group shrink-0">
-          <div className="h-10 w-16 bg-white/10 hover:bg-white/15 backdrop-blur-xs border border-white/30 rounded-lg p-1 flex items-center justify-center transition-all shadow-inner">
+          <div className="h-10 w-20 bg-white rounded-xl p-1.5 flex items-center justify-center transition-all shadow-md">
             <img
-              src="/vmc-logo-white.svg"
+              src="/vmc-logo-official.png"
               alt="Vanita Math Classes logo"
-              className="h-8 w-auto object-contain drop-shadow"
+              className="h-full w-auto object-contain"
             />
           </div>
           <div>
