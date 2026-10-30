@@ -30,7 +30,6 @@ const studentSchema = new mongoose.Schema({
 
 studentSchema.index({ class: 1, batch: 1 })
 studentSchema.index({ class: 1, status: 1 })
-studentSchema.index({ studentId: 1 })
 
 studentSchema.virtual('pendingFee').get(function () {
   return Math.max(0, (this.totalFee || 0) - (this.paidFee || 0))

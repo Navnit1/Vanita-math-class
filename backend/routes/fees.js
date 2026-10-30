@@ -6,10 +6,10 @@ const router = Router()
 router.use(protect)
 
 router.get('/stats', authorize('admin'), getFeeStats)
-router.get('/', authorize('admin', 'teacher'), getAllFees)
+router.get('/', authorize('admin'), getAllFees)
 router.post('/', authorize('admin'), createFee)
 router.post('/bulk', authorize('admin'), createBulkFees)
-router.get('/student/:studentId', authorize('admin', 'teacher'), getStudentFees)
+router.get('/student/:studentId', authorize('admin'), getStudentFees)
 router.put('/:id', authorize('admin'), updateFee)
 router.delete('/:id', authorize('admin'), deleteFee)
 

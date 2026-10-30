@@ -26,6 +26,7 @@ router.put('/:id', authorize('admin'), uploadProfile.single('profilePhoto'), upd
 router.patch('/:id/approve', authorize('admin'), approveStudent)
 router.patch('/:id/toggle-status', authorize('admin'), toggleStudentStatus)
 router.post('/:id/remind-fee-whatsapp', authorize('admin'), sendStudentFeeReminderWhatsApp)
+router.post('/:id/send-fee-reminder', authorize('admin'), sendStudentFeeReminderWhatsApp)
 router.post('/:id/reset-password', authorize('admin'), adminResetStudentPassword)
 router.delete('/:id', authorize('admin'), deleteStudent)
 

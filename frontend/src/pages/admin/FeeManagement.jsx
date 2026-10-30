@@ -17,6 +17,7 @@ import {
 } from '@/components/ui'
 import { feeService, studentService, announcementService } from '@/services'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { getWhatsAppFeeReminderUrl } from '@/lib/whatsapp'
 import {
   Plus,
   Trash2,
@@ -366,10 +367,15 @@ export default function FeeManagement() {
                   const student = f.studentId
                   const remaining = Math.max(0, f.amount - (f.paidAmount || 0))
                   const studentPhone = student?.parentPhone || student?.phone
-                  const whatsappMsg = encodeURIComponent(
-                    `Dear Parent/Student (${student?.fullName || 'Student'}), this is a gentle reminder from Vanita Math Classes regarding fee due for ${f.month || 'tuition'} (Amount: ₹${remaining}). Kindly clear the dues at your earliest convenience. Regards, Vanita Math Classes (+91 98159-62612)`
-                  )
-                  const whatsappUrl = studentPhone ? `https://wa.me/91${studentPhone.replace(/\D/g, '')}?text=${whatsappMsg}` : null
+                  const whatsappUrl = studentPhone ? getWhatsAppFeeReminderUrl({
+                    parentPhone: student?.parentPhone,
+                    phone: student?.phone,
+                    parentName: student?.parentName,
+                    fullName: student?.fullName,
+                    studentId: student?.studentId,
+                    class: student?.class,
+                    dueAmount: remaining,
+                  }) : null
 
                   return (
                     <tr key={f._id} className="hover:bg-gray-50/50 transition-colors">

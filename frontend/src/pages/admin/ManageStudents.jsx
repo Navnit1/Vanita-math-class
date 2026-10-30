@@ -11,6 +11,7 @@ import {
 } from '@/components/ui'
 import { studentService, paymentService } from '@/services'
 import { formatCurrency, formatDate, feeStatusBadge, cn } from '@/lib/utils'
+import { getWhatsAppFeeReminderUrl } from '@/lib/whatsapp'
 import {
   Plus, Pencil, Trash2, Users, Loader2, Copy, Download,
   CheckCircle2, KeyRound, CreditCard, UserCheck, ShieldAlert,
@@ -244,15 +245,16 @@ export default function ManageStudents() {
         toast.success(`Fee reminder sent to ${res.data?.recipientPhone || student.fullName} via WhatsApp!`)
       } else {
         toast(`WhatsApp Cloud API not active (${res?.data?.status || 'unconfigured'}). Opening manual WhatsApp link...`, { icon: 'ℹ️' })
-        const targetUrl = res?.data?.whatsAppLink || student.whatsappLink
+        const targetUrl = res?.data?.whatsAppLink || student.whatsappLink || getWhatsAppFeeReminderUrl(student)
         if (targetUrl) {
           window.open(targetUrl, '_blank')
         }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to dispatch fee reminder')
-      if (student.whatsappLink) {
-        window.open(student.whatsappLink, '_blank')
+      const targetUrl = student.whatsappLink || getWhatsAppFeeReminderUrl(student)
+      if (targetUrl) {
+        window.open(targetUrl, '_blank')
       }
     } finally {
       setSendingReminderId(null)

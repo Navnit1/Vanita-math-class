@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import Sidebar from '@/components/layout/Sidebar'
 import { PageLoader, Modal, ConfirmDialog, FormField, Select, EmptyState, Badge } from '@/components/ui'
+import CreateTestModal from '@/components/modals/CreateTestModal'
+import SelectAndGradeTestModal from '@/components/modals/SelectAndGradeTestModal'
 import { weeklyTestService } from '@/services'
 import { formatDate, formatCurrency, cn } from '@/lib/utils'
 import {
@@ -21,6 +23,8 @@ export default function TestReportsAdmin() {
   const [activeTab, setActiveTab] = useState(initialTab)
   const [selectedTestId, setSelectedTestId] = useState(searchParams.get('testId') || '')
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState(null)
+  const [showCreateTestModal, setShowCreateTestModal] = useState(false)
+  const [showGradeModal, setShowGradeModal] = useState(false)
 
   // Schedule Test Form State
   const [scheduleForm, setScheduleForm] = useState({
@@ -280,33 +284,51 @@ export default function TestReportsAdmin() {
           </p>
         </div>
 
-        {/* Tab Controls */}
-        <div className="flex bg-[#F3F4F6] border border-[#D9DDE3] rounded-xl p-1 gap-1">
+        {/* Tab & Modal Controls */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setActiveTab('marks')}
-            className={cn(
-              'px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5',
-              activeTab === 'marks'
-                ? 'bg-white text-[#C90019] shadow-xs'
-                : 'text-[#64748B] hover:text-[#171717]'
-            )}
+            onClick={() => setShowCreateTestModal(true)}
+            className="px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-xs"
+            title="Schedule test in popup modal"
           >
-            <PenTool className="w-4 h-4 text-[#E50914]" />
-            Test Report & Marks Entry
+            <Plus className="w-4 h-4" />
+            + Schedule Test (Modal)
           </button>
 
           <button
-            onClick={() => setActiveTab('schedule')}
-            className={cn(
-              'px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5',
-              activeTab === 'schedule'
-                ? 'bg-[#E50914] text-white shadow-xs'
-                : 'text-[#64748B] hover:text-[#171717]'
-            )}
+            onClick={() => setShowGradeModal(true)}
+            className="px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 bg-white border border-gray-300 hover:border-red-500 text-gray-800 hover:text-red-600 shadow-xs"
+            title="Open responsive grading modal"
           >
-            <Plus className="w-4 h-4" />
-            Schedule Weekly Test
+            <PenTool className="w-4 h-4 text-red-600" />
+            Input Marks (Modal)
           </button>
+
+          <div className="flex bg-[#F3F4F6] border border-[#D9DDE3] rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setActiveTab('marks')}
+              className={cn(
+                'px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5',
+                activeTab === 'marks'
+                  ? 'bg-white text-[#C90019] shadow-xs'
+                  : 'text-[#64748B] hover:text-[#171717]'
+              )}
+            >
+              Spreadsheet View
+            </button>
+
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={cn(
+                'px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5',
+                activeTab === 'schedule'
+                  ? 'bg-[#E50914] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-[#171717]'
+              )}
+            >
+              Full Page Form
+            </button>
+          </div>
         </div>
       </div>
 
@@ -890,6 +912,23 @@ export default function TestReportsAdmin() {
         confirmText="Delete Test"
         danger
         loading={deleteMutation.isPending}
+      />
+
+      {/* CREATE TEST POPUP MODAL */}
+      <CreateTestModal
+        isOpen={showCreateTestModal}
+        onClose={() => setShowCreateTestModal(false)}
+        onCreated={(test) => {
+          setSelectedTestId(test._id)
+          setActiveTab('marks')
+        }}
+      />
+
+      {/* SELECT & GRADE TEST POPUP MODAL */}
+      <SelectAndGradeTestModal
+        isOpen={showGradeModal}
+        onClose={() => setShowGradeModal(false)}
+        initialTestId={selectedTestId}
       />
     </Sidebar>
   )

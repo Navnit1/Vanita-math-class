@@ -5,6 +5,10 @@ import { useAuth } from '@/contexts/AuthContext'
 import { announcementService, contactService } from '@/services'
 import { cn } from '@/lib/utils'
 import { Avatar } from '@/components/ui'
+import RecordOfflinePaymentModal from '@/components/modals/RecordOfflinePaymentModal'
+import AddStudentModal from '@/components/modals/AddStudentModal'
+import SelectAndGradeTestModal from '@/components/modals/SelectAndGradeTestModal'
+import UploadNotesModal from '@/components/modals/UploadNotesModal'
 import {
   LayoutDashboard, Users, DollarSign, BookOpen, Bell, Calendar,
   LogOut, ClipboardList, Settings, UserCheck, Mail,
@@ -42,6 +46,12 @@ export default function Sidebar({ children }) {
   const { user, isAdmin, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+
+  // Global Admin Modals State (accessible from top header across all pages)
+  const [showRecordFeeModal, setShowRecordFeeModal] = useState(false)
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false)
+  const [showInputMarksModal, setShowInputMarksModal] = useState(false)
+  const [showUploadNotesModal, setShowUploadNotesModal] = useState(false)
 
   const nav = isAdmin ? ADMIN_NAV : STUDENT_NAV
 
@@ -117,7 +127,7 @@ export default function Sidebar({ children }) {
             {isAdmin && (
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => navigate('/admin/fees?action=record')}
+                  onClick={() => setShowRecordFeeModal(true)}
                   className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-2xs"
                   title="Record fee payment"
                 >
@@ -126,7 +136,7 @@ export default function Sidebar({ children }) {
                 </button>
 
                 <button
-                  onClick={() => navigate('/admin/students?action=new')}
+                  onClick={() => setShowAddStudentModal(true)}
                   className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-2xs"
                   title="Enroll a new student"
                 >
@@ -135,7 +145,7 @@ export default function Sidebar({ children }) {
                 </button>
 
                 <button
-                  onClick={() => navigate('/admin/test-reports?tab=marks')}
+                  onClick={() => setShowInputMarksModal(true)}
                   className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-2xs"
                   title="Input weekly test marks"
                 >
@@ -144,7 +154,7 @@ export default function Sidebar({ children }) {
                 </button>
 
                 <button
-                  onClick={() => navigate('/admin/materials?action=upload')}
+                  onClick={() => setShowUploadNotesModal(true)}
                   className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-2xs hidden sm:flex"
                   title="Upload class PDF notes"
                 >
@@ -246,6 +256,28 @@ export default function Sidebar({ children }) {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </main>
+
+      {/* Global Admin Modals */}
+      {isAdmin && (
+        <>
+          <RecordOfflinePaymentModal
+            isOpen={showRecordFeeModal}
+            onClose={() => setShowRecordFeeModal(false)}
+          />
+          <AddStudentModal
+            isOpen={showAddStudentModal}
+            onClose={() => setShowAddStudentModal(false)}
+          />
+          <SelectAndGradeTestModal
+            isOpen={showInputMarksModal}
+            onClose={() => setShowInputMarksModal(false)}
+          />
+          <UploadNotesModal
+            isOpen={showUploadNotesModal}
+            onClose={() => setShowUploadNotesModal(false)}
+          />
+        </>
+      )}
     </div>
   )
 }

@@ -21,7 +21,9 @@ router.get('/', authorize('admin'), getWeeklyTests)
 router.post('/', authorize('admin'), scheduleWeeklyTest)
 router.get('/:id/sheet', authorize('admin'), getTestSheet)
 router.post('/:id/marks', authorize('admin'), saveTestMarks)
+router.put('/:id/marks', authorize('admin'), saveTestMarks)
 router.post('/:id/send-results-whatsapp', authorize('admin'), sendTestResultWhatsApp)
+router.post('/:id/whatsapp', authorize('admin'), sendTestResultWhatsApp)
 router.delete('/:id', authorize('admin'), deleteWeeklyTest)
 
 export default router
