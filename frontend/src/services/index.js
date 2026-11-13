@@ -62,11 +62,15 @@ export const studentService = {
 
 export const batchService = {
   getAll: async () => { const { data } = await api.get('/batches'); return data.data },
+  create: async (payload) => { const { data } = await api.post('/batches', payload); return data.data },
+  update: async (id, payload) => { const { data } = await api.put(`/batches/${id}`, payload); return data.data },
+  delete: async (id) => { const { data } = await api.delete(`/batches/${id}`); return data },
 }
 
 export const weeklyTestService = {
   getAll: async (params) => { const { data } = await api.get('/weekly-tests', { params }); return data.data },
   schedule: async (payload) => { const { data } = await api.post('/weekly-tests', payload); return data.data },
+  create: async (payload) => { const { data } = await api.post('/weekly-tests', payload); return data.data },
   getSheet: async (id) => { const { data } = await api.get(`/weekly-tests/${id}/sheet`); return data.data },
   saveMarks: async (id, marksList) => { const { data } = await api.post(`/weekly-tests/${id}/marks`, { marksList }); return data.data },
   sendResultsWhatsApp: async (id, payload) => { const { data } = await api.post(`/weekly-tests/${id}/send-results-whatsapp`, payload); return data },
@@ -143,8 +147,13 @@ export const materialService = {
     const { data } = await api.post('/materials', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     return data.data
   },
-  update: async (id, formData) => {
-    const { data } = await api.put(`/materials/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  create: async (payload) => {
+    const { data } = await api.post('/materials', payload)
+    return data.data
+  },
+  update: async (id, payload) => {
+    const isFormData = payload instanceof FormData
+    const { data } = await api.put(`/materials/${id}`, payload, isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {})
     return data.data
   },
   viewUrl: (id) => `${API_BASE_URL}/materials/${id}/view`,
@@ -156,6 +165,7 @@ export const contactService = {
   getAll: async (params) => { const { data } = await api.get('/contact', { params }); return data.data },
   updateStatus: async (id, status) => { const { data } = await api.put(`/contact/${id}`, { status }); return data.data },
   enroll: async (id, payload) => { const { data } = await api.post(`/contact/${id}/enroll`, payload); return data.data },
+  delete: async (id) => { const { data } = await api.delete(`/contact/${id}`); return data },
 }
 
 export const adminService = {
@@ -166,4 +176,10 @@ export const adminService = {
   },
   getReports: async (params) => { const { data } = await api.get('/admin/reports', { params }); return data.data },
   getAuditLogs: async (params) => { const { data } = await api.get('/admin/audit-logs', { params }); return data.data },
+  getSettings: async () => { const { data } = await api.get('/admin/settings'); return data.data },
+  updateSettings: async (payload) => { const { data } = await api.put('/admin/settings', payload); return data.data },
+  exportAllData: async () => { const { data } = await api.get('/admin/export-data'); return data.data },
+  importAllData: async (backup) => { const { data } = await api.post('/admin/import-data', { data: backup }); return data.data },
 }
+
+export { authService } from './authService'

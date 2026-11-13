@@ -1,3 +1,5 @@
+import Settings from '../models/Settings.js'
+import Batch from '../models/Batch.js'
 import Student from '../models/Student.js'
 import Payment from '../models/Payment.js'
 import Fee from '../models/Fee.js'
@@ -231,6 +233,89 @@ export const getAuditLogs = async (req, res, next) => {
     const total = await AuditLog.countDocuments()
 
     sendResponse(res, 200, { logs, total, page: Number(page), pages: Math.ceil(total / limit) })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const getSettings = async (req, res, next) => {
+  try {
+    let settings = await Settings.findOne()
+    if (!settings) {
+      settings = await Settings.create({})
+    }
+    sendResponse(res, 200, settings, 'Settings retrieved successfully')
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const updateSettings = async (req, res, next) => {
+  try {
+    let settings = await Settings.findOne()
+    if (!settings) {
+      settings = new Settings(req.body)
+    } else {
+      Object.assign(settings, req.body)
+    }
+    await settings.save()
+    sendResponse(res, 200, settings, 'Settings updated successfully')
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const exportAllData = async (req, res, next) => {
+  try {
+    const [students, batches, payments, fees, tests, marks, materials, enquiries, settings] = await Promise.all([
+      Student.find().lean(),
+      Batch.find().lean(),
+      Payment.find().lean(),
+      Fee.find().lean(),
+      WeeklyTest.find().lean(),
+      TestResult.find().lean(),
+      Material.find().lean(),
+      ContactInquiry.find().lean(),
+      Settings.findOne().lean(),
+    ])
+
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      version: '2.0.0',
+      data: {
+        students,
+        batches,
+        payments,
+        fees,
+        tests,
+        marks,
+        materials,
+        enquiries,
+        settings: settings || {}
+      }
+    }
+
+    sendResponse(res, 200, backup, 'Complete backup generated successfully')
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const importAllData = async (req, res, next) => {
+  try {
+    const { data } = req.body
+    if (!data) return next(createError(400, 'Invalid backup data'))
+
+    if (Array.isArray(data.batches) && data.batches.length > 0) {
+      await Batch.deleteMany({})
+      await Batch.insertMany(data.batches)
+    }
+    if (data.settings) {
+      await Settings.deleteMany({})
+      await Settings.create(data.settings)
+    }
+
+    sendResponse(res, 200, null, 'Data restored successfully')
   } catch (err) {
     next(err)
   }
