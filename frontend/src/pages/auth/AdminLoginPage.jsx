@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
               <input
                 {...register('identifier')}
                 type="text"
-                placeholder="admin or admin@vanitamath.com"
+                placeholder="navnit"
                 className={`input ${errors.identifier ? 'input-error' : ''}`}
                 autoFocus
                 autoComplete="username"

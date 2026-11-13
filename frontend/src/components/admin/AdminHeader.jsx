@@ -77,7 +77,7 @@ export default function AdminHeader({
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-white backdrop-blur-xs border border-white/20 shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Admin: {settings.facultyName ? settings.facultyName.split(' ')[0] : 'Vikas'}
+              Admin: Navnit
             </span>
             <button
               type="button"
@@ -150,7 +150,7 @@ export default function AdminHeader({
                 Session {settings.academicYear || '2026-2027'}
               </span>
               <span className="text-neutral-400">|</span>
-              <span className="text-neutral-900 font-bold">Admin: Vikas</span>
+              <span className="text-neutral-900 font-bold">Admin: Navnit</span>
             </div>
           </div>
         </div>

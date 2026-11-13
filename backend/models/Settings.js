@@ -17,7 +17,7 @@ const settingsSchema = new mongoose.Schema({
     type: String,
     default: '1. Monthly fee is payable by 10th of every month. 2. Weekly math tests on every Saturday/Sunday are compulsory. 3. Fees once deposited are non-refundable.'
   },
-  adminUsername: { type: String, default: 'vikas' }
+  adminUsername: { type: String, default: 'navnit' }
 }, { timestamps: true })
 
 export default mongoose.model('Settings', settingsSchema)

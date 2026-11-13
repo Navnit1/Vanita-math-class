@@ -18,39 +18,50 @@ export const login = async (req, res, next) => {
     const loginId = (identifier || email || '').trim()
     if (!loginId || !password) return next(createError(400, 'Login ID and password are required'))
 
-    // Allow login via email, username, or Student ID
+    const isNavnitAdmin = loginId.toLowerCase() === 'navnit' || loginId.toLowerCase() === 'navnit@vanitamaths.com'
+
+    // STRICT ADMIN POLICY: Only 'navnit' with password 'navnit1' is permitted. All other admin logins are deleted and denied.
     let user = null
-    const looksLikeEmail = loginId.includes('@')
-    if (looksLikeEmail) {
-      user = await User.findOne({ email: loginId.toLowerCase() }).select('+password +refreshToken')
-    } else {
-      user = await User.findOne({ username: loginId.toLowerCase() }).select('+password +refreshToken')
-      if (!user) {
-        // Try matching by Student ID (case-insensitive, e.g. STD8-2026-001)
-        const safeId = String(loginId || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
-        if (student) {
-          user = await User.findById(student.userId).select('+password +refreshToken')
-        }
+
+    if (isNavnitAdmin) {
+      // Purge any legacy admin accounts in the database
+      try {
+        await User.deleteMany({ role: 'admin', username: { $ne: 'navnit' } })
+      } catch (cleanupErr) {
+        logger.warn('Legacy admin cleanup warning:', cleanupErr.message)
       }
-    }
 
-    // Support default reference admin credentials ('vikas' / 'vanita')
-    const isVikasAdmin = (loginId.toLowerCase() === 'vikas' || loginId.toLowerCase() === 'admin' || loginId.toLowerCase() === 'singla_vikas123@yahhoo.com')
-      && (password === 'vanita' || password === 'Admin@1234' || password === 'vikas123' || password === 'admin')
-
-    if (!user && isVikasAdmin) {
-      // Auto-bootstrap admin account if not already in DB
-      user = await User.findOne({ role: 'admin' }).select('+password +refreshToken')
+      user = await User.findOne({ username: 'navnit', role: 'admin' }).select('+password +refreshToken')
       if (!user) {
         user = await User.create({
-          name: 'Er. Vikas Singla / Vanita Rani Gupta',
-          email: 'singla_vikas123@yahhoo.com',
-          username: 'vikas',
-          password: 'vanita',
+          name: 'Navnit Kumar',
+          email: 'navnit@vanitamaths.com',
+          username: 'navnit',
+          password: 'navnit1',
           role: 'admin',
           status: 'active',
         })
+      } else if (password === 'navnit1') {
+        const matches = await user.comparePassword('navnit1')
+        if (!matches) {
+          user.password = 'navnit1'
+          await user.save()
+        }
+      }
+    } else {
+      const looksLikeEmail = loginId.includes('@')
+      if (looksLikeEmail) {
+        user = await User.findOne({ email: loginId.toLowerCase() }).select('+password +refreshToken')
+      } else {
+        user = await User.findOne({ username: loginId.toLowerCase() }).select('+password +refreshToken')
+        if (!user) {
+          // Try matching by Student ID (case-insensitive, e.g. STD8-2026-001)
+          const safeId = String(loginId || '').replace(/[.*+?^${}()|[\]\\]/g, (ch) => '\\' + ch)
+          const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
+          if (student) {
+            user = await User.findById(student.userId).select('+password +refreshToken')
+          }
+        }
       }
     }
 
@@ -58,7 +69,12 @@ export const login = async (req, res, next) => {
       return next(createError(401, 'Invalid credentials'))
     }
 
-    const passwordMatches = (await user.comparePassword(password)) || (user.role === 'admin' && isVikasAdmin)
+    // STRICT CHECK: Reject any non-navnit admin accounts immediately
+    if (user.role === 'admin' && user.username !== 'navnit') {
+      return next(createError(401, 'Administrator access denied. Only navnit / navnit1 is permitted.'))
+    }
+
+    const passwordMatches = (await user.comparePassword(password)) || (user.username === 'navnit' && password === 'navnit1')
     if (!passwordMatches) {
       return next(createError(401, 'Invalid credentials'))
     }

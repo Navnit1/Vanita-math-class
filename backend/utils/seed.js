@@ -54,27 +54,20 @@ async function seed() {
     receiptPrefix: 'VMC-2026-',
     academicYear: '2026-2027',
     termsAndConditions: '1. Monthly fee is payable by 10th of every month. 2. Weekly math tests on every Saturday/Sunday are compulsory. 3. Fees once deposited are non-refundable.',
-    adminUsername: 'vikas'
+    adminUsername: 'navnit'
   })
   console.log('Center settings created')
 
   // 2. Administrators: Vikas & Admin
-  const adminVikas = await User.create({
-    name: 'Er. Vikas Singla',
-    email: 'singla_vikas123@yahhoo.com',
-    username: 'vikas',
-    password: 'vanita',
+  const adminNavnit = await User.create({
+    name: 'Navnit Kumar',
+    email: 'navnit@vanitamaths.com',
+    username: 'navnit',
+    password: 'navnit1',
     role: 'admin',
     status: 'active',
   })
-  const adminVanita = await User.create({
-    name: 'Vanita Rani Gupta',
-    email: 'admin@vanitamath.com',
-    username: 'admin',
-    password: 'vanita',
-    role: 'admin',
-    status: 'active',
-  })
+  const adminVikas = adminNavnit
   console.log('Admin accounts created (username: vikas & admin, password: vanita)')
 
   // 3. Batches

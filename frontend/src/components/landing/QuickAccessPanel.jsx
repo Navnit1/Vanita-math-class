@@ -46,8 +46,8 @@ export default function QuickAccessPanel({ settings = {} }) {
   const [submittedEnquiry, setSubmittedEnquiry] = useState(null)
 
   // 2. Admin Login State
-  const [adminUsername, setAdminUsername] = useState('vikas')
-  const [adminPassword, setAdminPassword] = useState('vanita')
+  const [adminUsername, setAdminUsername] = useState('navnit')
+  const [adminPassword, setAdminPassword] = useState('navnit1')
   const [showAdminPassword, setShowAdminPassword] = useState(false)
 
   // 3. Student Login State
@@ -115,7 +115,7 @@ export default function QuickAccessPanel({ settings = {} }) {
         navigate('/admin')
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Invalid admin credentials. (Default: vikas / vanita)'
+      const msg = err.response?.data?.message || 'Invalid admin credentials. Access restricted to navnit / navnit1.'
       setErrorMessage(msg)
     } finally {
       setLoading(false)
@@ -838,8 +838,8 @@ export default function QuickAccessPanel({ settings = {} }) {
               </button>
             </div>
             <p className="text-[11px] text-neutral-600 leading-relaxed">
-              <strong>Admin:</strong> Username is <code>vikas</code> and default password is{' '}
-              <code>vanita</code>.<br />
+              <strong>Admin:</strong> Username is <code>navnit</code> and password is{' '}
+              <code>navnit1</code>.<br />
               <strong>Students:</strong> Log in using your assigned Roll Number (e.g.{' '}
               <code>VMC-101</code>) or phone number with password <code>vanita</code>.
             </p>
