@@ -27,7 +27,8 @@ export const login = async (req, res, next) => {
       user = await User.findOne({ username: loginId.toLowerCase() }).select('+password +refreshToken')
       if (!user) {
         // Try matching by Student ID (case-insensitive, e.g. STD8-2026-001)
-        const student = await Student.findOne({ studentId: new RegExp(`^${loginId}$`, 'i') })
+        const safeId = String(loginId || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
         if (student) {
           user = await User.findById(student.userId).select('+password +refreshToken')
         }
@@ -263,7 +264,8 @@ export const requestPasswordResetOtp = async (req, res, next) => {
     }).select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +lastOtpSentAt')
 
     if (!user && !loginId.includes('@')) {
-      const student = await Student.findOne({ studentId: new RegExp(`^${loginId}$`, 'i') })
+      const safeId = String(loginId || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
       if (student) {
         user = await User.findById(student.userId).select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +lastOtpSentAt')
       }
@@ -320,7 +322,8 @@ export const verifyOtpAndResetPassword = async (req, res, next) => {
     }).select('+password +resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts')
 
     if (!user && !loginId.includes('@')) {
-      const student = await Student.findOne({ studentId: new RegExp(`^${loginId}$`, 'i') })
+      const safeId = String(loginId || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
       if (student) {
         user = await User.findById(student.userId).select('+password +resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts')
       }

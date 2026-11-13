@@ -1,3 +1,4 @@
+import { getStandardMonthlyFee } from '@/config/pricing'
 import { useState, useMemo } from 'react'
 import {
   Search,
@@ -34,15 +35,9 @@ export default function StudentsView({
   // Enriched students with calculated monthly fee and current month fee status
   const enrichedStudents = useMemo(() => {
     return students.map((s) => {
-      let monthlyFee = Number(s.monthlyFee || 0)
-      if (!monthlyFee && batches.length > 0) {
-        const b = batches.find((item) =>
-          (s.batchIds || []).includes(item.id || item.batchId) ||
-          item.name === s.batch ||
-          item.grade === (s.grade || s.class)
-        )
-        monthlyFee = b ? b.monthlyFee : 2500
-      }
+      let monthlyFee = Number(s.monthlyFee) > 0
+        ? Number(s.monthlyFee)
+        : getStandardMonthlyFee(s.class || s.grade)
 
       const currentMonthPaid = payments
         .filter((p) => {

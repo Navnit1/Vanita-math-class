@@ -73,55 +73,20 @@ export default function AdminHeader({
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <button
-              type="button"
-              onClick={onOpenRecordPayment}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 rounded-lg shadow-sm transition-all cursor-pointer ring-1 ring-emerald-500"
-              title="Record student fee payment"
-            >
-              <CreditCard className="w-3.5 h-3.5 shrink-0" />
-              <span>+ Record Fee</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onOpenAddStudent}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-900 bg-white hover:bg-rose-50 active:bg-neutral-100 rounded-lg shadow-sm transition-all cursor-pointer"
-              title="Enroll a new student"
-            >
-              <Plus className="w-3.5 h-3.5 shrink-0 text-red-600" />
-              <span>+ Add Student</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onOpenInputMarks || (() => handleTabClick('tests'))}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-950 bg-amber-300 hover:bg-amber-200 active:bg-amber-400 rounded-lg shadow-sm transition-all cursor-pointer"
-              title="Input student weekly test marks"
-            >
-              <PenLine className="w-3.5 h-3.5 shrink-0 text-amber-900" />
-              <span>✍️ Input Marks</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onOpenPostNotes || (() => handleTabClick('notes'))}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-sky-950 bg-sky-300 hover:bg-sky-200 active:bg-sky-400 rounded-lg shadow-sm transition-all cursor-pointer"
-              title="Upload class study notes / PDF"
-            >
-              <Upload className="w-3.5 h-3.5 shrink-0 text-sky-900" />
-              <span>📤 Upload Notes</span>
-            </button>
-
+          {/* Right Controls: Admin Identity & Logout */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-white backdrop-blur-xs border border-white/20 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Admin: {settings.facultyName ? settings.facultyName.split(' ')[0] : 'Vikas'}
+            </span>
             <button
               type="button"
               onClick={onLogout}
-              className="p-1.5 text-rose-200 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer ml-1"
-              title="Logout from Admin"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-black/20 hover:bg-black/35 active:bg-black/50 border border-white/20 rounded-lg transition-all cursor-pointer shadow-2xs"
+              title="Logout from Admin Panel"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
             </button>
           </div>
         </div>

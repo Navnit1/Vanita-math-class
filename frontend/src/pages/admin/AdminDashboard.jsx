@@ -1,3 +1,4 @@
+import { getStandardMonthlyFee } from '@/config/pricing'
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -155,7 +156,7 @@ export default function AdminDashboard({ initialTab }) {
       batchIds: s.batchIds || (s.batchId ? [s.batchId] : []),
       batch: s.batch || '',
       discountPercent: Number(s.discountPercent || s.discount || 0),
-      monthlyFee: Number(s.monthlyFee || 0),
+      monthlyFee: Number(s.monthlyFee) > 0 ? Number(s.monthlyFee) : getStandardMonthlyFee(s.class || s.grade),
       status: s.status || 'active',
       notes: s.notes || s.remarks || '',
       avatarColor: s.avatarColor || '#DC2626'
@@ -337,15 +338,9 @@ export default function AdminDashboard({ initialTab }) {
   const dueCount = useMemo(() => {
     return students.filter((s) => {
       if (s.status !== 'active') return false
-      let expectedFee = Number(s.monthlyFee || 0)
-      if (!expectedFee && batches.length > 0) {
-        const b = batches.find((item) =>
-          (s.batchIds || []).includes(item.id) ||
-          item.name === s.batch ||
-          item.grade === s.grade
-        )
-        expectedFee = b ? Number(b.monthlyFee || 2500) : 2500
-      }
+      let expectedFee = Number(s.monthlyFee) > 0
+        ? Number(s.monthlyFee)
+        : getStandardMonthlyFee(s.class || s.grade)
       if (s.discountPercent > 0) {
         expectedFee = Math.round(expectedFee * (1 - s.discountPercent / 100))
       }

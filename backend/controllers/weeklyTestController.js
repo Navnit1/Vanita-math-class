@@ -412,15 +412,21 @@ export const getMyWeeklyTestResults = async (req, res, next) => {
         gradedAt: r.gradedAt,
       }))
 
-    // 2. Fetch upcoming tests for this student's class
+    // 2. Fetch upcoming tests for this student's class (matching '10th', 'Class 10th', '10')
+    const cleanClassDigits = String(student.class || '').replace(/[^0-9]/g, '')
+    const safeStudentClass = String(student.class || '').replace(/[.*+?^${}()|[\]\\]/g, (ch) => '\\' + ch)
+    const classConditions = [
+      { class: student.class },
+      { class: new RegExp(safeStudentClass, 'i') },
+    ]
+    if (cleanClassDigits) {
+      classConditions.push({ class: new RegExp(cleanClassDigits, 'i') })
+    }
+
     const upcomingTests = await WeeklyTest.find({
-      class: student.class,
+      $or: classConditions,
       status: 'scheduled',
       testDate: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      $or: [
-        { batch: 'All Batches' },
-        { batch: student.batch },
-      ],
     }).sort({ testDate: 1 })
 
     // Summary performance stats for student

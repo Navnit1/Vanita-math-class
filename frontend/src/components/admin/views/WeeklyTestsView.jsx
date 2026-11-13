@@ -1,3 +1,4 @@
+import { normalizeClassKey } from '@/config/pricing'
 import { useState, useEffect, useMemo } from 'react'
 import {
   ClipboardList,
@@ -91,7 +92,7 @@ export default function WeeklyTestsView({
   const filterList = (list) => {
     return list.filter((t) => {
       const tGrade = t.class || t.grade || ''
-      const matchesStandard = standardFilter === 'all' || tGrade === standardFilter
+      const matchesStandard = standardFilter === 'all' || normalizeClassKey(tGrade) === normalizeClassKey(standardFilter)
       const q = searchTerm.toLowerCase().trim()
       const matchesSearch =
         !q ||
@@ -216,11 +217,11 @@ export default function WeeklyTestsView({
               className="w-full px-3 py-2 text-xs sm:text-sm font-bold border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 bg-white text-neutral-800"
             >
               <option value="all">All Standards / Classes</option>
-              <option value="8th Class">Class 8th</option>
-              <option value="9th Class">Class 9th</option>
-              <option value="10th Class">Class 10th (Board)</option>
-              <option value="+1 (11th) Mathematics">+1 (11th)</option>
-              <option value="+2 (12th) Mathematics">+2 (12th Board)</option>
+              <option value="10th">Class 10th (Board)</option>
+              <option value="9th">Class 9th</option>
+              <option value="8th">Class 8th</option>
+              <option value="11th">+1 (11th) Mathematics</option>
+              <option value="12th">+2 (12th Board)</option>
             </select>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { normalizeClassKey } from '@/config/pricing'
 import { useState, useEffect } from 'react'
 import { X, ClipboardList } from 'lucide-react'
 
@@ -9,7 +10,7 @@ export default function ScheduleTestModal({
   batches = [],
 }) {
   const [title, setTitle] = useState('Weekly Mathematics Test')
-  const [grade, setGrade] = useState('10th Class')
+  const [grade, setGrade] = useState('10th')
   const [subject, setSubject] = useState('Mathematics')
   const [batchId, setBatchId] = useState('')
   const [topic, setTopic] = useState('')
@@ -67,8 +68,8 @@ export default function ScheduleTestModal({
     const payload = {
       ...(testToEdit ? { _id: testToEdit._id, id: testToEdit.id || testToEdit._id } : {}),
       title: title.trim(),
-      class: grade,
-      grade,
+      class: normalizeClassKey(grade) || grade,
+      grade: normalizeClassKey(grade) || grade,
       subject: subject.trim() || 'Mathematics',
       batchId: batchId || undefined,
       batch: batches.find(b => (b.id || b.batchId) === batchId)?.name || 'All Batches',
@@ -135,11 +136,11 @@ export default function ScheduleTestModal({
                 onChange={(e) => setGrade(e.target.value)}
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-600 bg-white font-medium"
               >
-                <option value="8th Class">Class 8th</option>
-                <option value="9th Class">Class 9th</option>
-                <option value="10th Class">Class 10th (Board)</option>
-                <option value="+1 (11th) Mathematics">+1 (11th)</option>
-                <option value="+2 (12th) Mathematics">+2 (12th Board)</option>
+                <option value="10th">Class 10th (Board)</option>
+                <option value="9th">Class 9th</option>
+                <option value="8th">Class 8th</option>
+                <option value="11th">+1 (11th)</option>
+                <option value="12th">+2 (12th Board)</option>
               </select>
             </div>
 

@@ -36,14 +36,23 @@ router.get('/', async (req, res, next) => {
     const batches = await Promise.all(
       dbBatches.map(async (b) => {
         const obj = b.toObject ? b.toObject() : b
+        const cleanDigits = b.grade ? b.grade.replace(/[^0-9]/g, '') : ''
+        const safeGrade = b.grade ? b.grade.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : ''
+        const orConditions = [
+          { class: b.grade },
+          { class: b.batchId },
+          { batch: b.name },
+          { batch: b.batchId },
+        ]
+        if (cleanDigits) {
+          orConditions.push({ class: new RegExp(cleanDigits, 'i') })
+        }
+        if (safeGrade) {
+          orConditions.push({ class: new RegExp(safeGrade, 'i') })
+        }
+
         const count = await Student.countDocuments({
-          $or: [
-            { class: b.grade },
-            { class: b.batchId },
-            { batch: b.name },
-            { batch: b.batchId },
-            { class: new RegExp(b.grade.replace(/[^0-9\+]/g, ''), 'i') }
-          ],
+          $or: orConditions,
           status: 'active',
         })
         const percentage = Math.min(100, Math.round((count / (b.capacity || 30)) * 100))

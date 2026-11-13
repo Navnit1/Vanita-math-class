@@ -8,6 +8,8 @@ export const CLASS_PRICING = {
   '10th': 2500,
   '+1': 3000,
   '+2': 3500,
+  '11th': 3000,
+  '12th': 3500,
 }
 
 export const BATCH_DEFINITIONS = [
@@ -78,18 +80,29 @@ export const BATCH_DEFINITIONS = [
   },
 ]
 
+export const normalizeClassKey = (val) => {
+  if (!val) return ''
+  const str = String(val).toLowerCase().trim()
+  if (str.includes('+2') || str.includes('12')) return '12th'
+  if (str.includes('+1') || str.includes('11')) return '11th'
+  if (str.includes('10')) return '10th'
+  if (str.includes('9')) return '9th'
+  if (str.includes('8')) return '8th'
+  return str.replace(/[^a-z0-9]/g, '')
+}
+
 export const normalizeStandard = (cls) => {
   if (!cls) return '10th'
-  const s = String(cls).trim().toLowerCase().replace(/class/i, '').trim()
-  if (s === '8' || s === '8th') return '8th'
-  if (s === '9' || s === '9th') return '9th'
-  if (s === '10' || s === '10th') return '10th'
-  if (s === '11' || s === '11th' || s === '+1') return '+1'
-  if (s === '12' || s === '12th' || s === '+2') return '+2'
+  const key = normalizeClassKey(cls)
+  if (key === '8th') return '8th'
+  if (key === '9th') return '9th'
+  if (key === '10th') return '10th'
+  if (key === '11th') return '+1'
+  if (key === '12th') return '+2'
   return cls
 }
 
 export const getStandardMonthlyFee = (cls) => {
   const norm = normalizeStandard(cls)
-  return CLASS_PRICING[norm] || 2500
+  return CLASS_PRICING[norm] || CLASS_PRICING[normalizeClassKey(cls)] || 2500
 }

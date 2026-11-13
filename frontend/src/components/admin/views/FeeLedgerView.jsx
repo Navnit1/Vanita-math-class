@@ -54,9 +54,14 @@ export default function FeeLedgerView({
   const filteredPayments = useMemo(() => {
     const q = searchTerm.toLowerCase().trim()
     return payments.filter((p) => {
-      const student = students.find((s) => (s.id || s._id) === p.studentId)
-      const name = student?.name?.toLowerCase() || ''
-      const rollNo = student?.rollNo?.toLowerCase() || ''
+      const pStudentId = String(p.studentId?._id || p.studentId || '')
+      const student = students.find((s) => {
+        const sId = String(s.id || s._id || '')
+        const sRoll = String(s.studentId || s.rollNo || '').toLowerCase()
+        return (sId && sId === pStudentId) || (sRoll && sRoll === pStudentId.toLowerCase())
+      })
+      const name = (student?.fullName || student?.name || p.studentName || p.studentId?.fullName || '').toLowerCase()
+      const rollNo = (student?.studentId || student?.rollNo || p.rollNo || p.studentId?.studentId || '').toLowerCase()
       const receiptNo = (p.receiptNo || '').toLowerCase()
       const refNo = (p.referenceNo || '').toLowerCase()
 
@@ -100,12 +105,19 @@ export default function FeeLedgerView({
       'Notes'
     ]
     const rows = filteredPayments.map((p) => {
-      const student = students.find((s) => (s.id || s._id) === p.studentId)
+      const pStudentId = String(p.studentId?._id || p.studentId || '')
+      const student = students.find((s) => {
+        const sId = String(s.id || s._id || '')
+        const sRoll = String(s.studentId || s.rollNo || '').toLowerCase()
+        return (sId && sId === pStudentId) || (sRoll && sRoll === pStudentId.toLowerCase())
+      })
+      const studentName = student?.fullName || student?.name || p.studentName || p.studentId?.fullName || 'Student'
+      const rollNo = student?.studentId || student?.rollNo || p.rollNo || '-'
       return [
         p.receiptNo || '',
         p.paymentDate || '',
-        student?.rollNo || '',
-        student?.name || 'Unknown',
+        rollNo,
+        studentName,
         p.month || '',
         p.amount || 0,
         p.paymentMode || 'Cash',

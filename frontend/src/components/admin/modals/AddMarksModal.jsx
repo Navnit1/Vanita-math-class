@@ -1,3 +1,4 @@
+import { normalizeClassKey } from '@/config/pricing'
 import { useState, useEffect, useMemo } from 'react'
 import {
   X,
@@ -22,7 +23,7 @@ export default function AddMarksModal({
   onSaveMarks,
   initialTestId = null,
 }) {
-  const [selectedStandard, setSelectedStandard] = useState('10th Class')
+  const [selectedStandard, setSelectedStandard] = useState('10th')
   const [selectedSubject, setSelectedSubject] = useState('Mathematics')
   const [selectedTestId, setSelectedTestId] = useState('')
   const [marksState, setMarksState] = useState({})
@@ -33,7 +34,7 @@ export default function AddMarksModal({
   const availableTests = useMemo(() => {
     return tests.filter((t) => {
       const tGrade = t.class || t.grade || ''
-      const matchesGrade = !selectedStandard || tGrade === selectedStandard
+      const matchesGrade = !selectedStandard || normalizeClassKey(tGrade) === normalizeClassKey(selectedStandard)
       const tSub = (t.subject || 'Mathematics').toLowerCase()
       const matchesSub = !selectedSubject || tSub.includes(selectedSubject.toLowerCase())
       return matchesGrade && matchesSub
@@ -48,7 +49,7 @@ export default function AddMarksModal({
   // Students belonging to the selected standard
   const targetStudents = useMemo(() => {
     if (!selectedStandard) return students
-    return students.filter((s) => (s.class || s.grade) === selectedStandard)
+    return students.filter((s) => normalizeClassKey(s.class || s.grade) === normalizeClassKey(selectedStandard))
   }, [students, selectedStandard])
 
   // Initialize selected test when modal opens or standard changes
@@ -57,7 +58,7 @@ export default function AddMarksModal({
       setSelectedTestId(initialTestId)
       const t = tests.find((item) => (item._id || item.id) === initialTestId)
       if (t) {
-        setSelectedStandard(t.class || t.grade || '10th Class')
+        setSelectedStandard(normalizeClassKey(t.class || t.grade || '10th'))
         setSelectedSubject(t.subject || 'Mathematics')
       }
     } else if (availableTests.length > 0 && !selectedTestId) {
@@ -291,11 +292,11 @@ ${settings.phone ? `Contact: ${settings.phone}` : ''}`
               }}
               className="w-full px-3 py-2 text-xs font-semibold border border-neutral-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 bg-white"
             >
-              <option value="8th Class">Class 8th</option>
-              <option value="9th Class">Class 9th</option>
-              <option value="10th Class">Class 10th (Board)</option>
-              <option value="+1 (11th) Mathematics">+1 (11th)</option>
-              <option value="+2 (12th) Mathematics">+2 (12th Board)</option>
+              <option value="10th">Class 10th (Board)</option>
+              <option value="9th">Class 9th</option>
+              <option value="8th">Class 8th</option>
+              <option value="11th">+1 (11th) Mathematics</option>
+              <option value="12th">+2 (12th Board)</option>
             </select>
           </div>
 
@@ -396,10 +397,11 @@ ${settings.phone ? `Contact: ${settings.phone}` : ''}`
                   <tr>
                     <th className="py-2.5 px-3">Roll & Student</th>
                     <th className="py-2.5 px-3 text-center w-24">Attendance</th>
-                    <th className="py-2.5 px-3 w-32">Marks ({maxMarks})</th>
+                    <th className="py-2.5 px-3 text-center w-24">Total Marks</th>
+                    <th className="py-2.5 px-3 text-center w-32">Marks Obtained</th>
                     <th className="py-2.5 px-3 text-center w-20">Score %</th>
                     <th className="py-2.5 px-3">Remarks / Feedback</th>
-                    <th className="py-2.5 px-3 text-center w-24">WhatsApp</th>
+                    <th className="py-2.5 px-3 text-center w-28">Send to Student</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
@@ -433,7 +435,15 @@ ${settings.phone ? `Contact: ${settings.phone}` : ''}`
                           </button>
                         </td>
 
-                        <td className="py-2 px-3">
+                        {/* Box 1: Total Marks of the test */}
+                        <td className="py-2 px-3 text-center">
+                          <div className="inline-flex items-center justify-center w-16 py-1 font-mono font-bold text-xs bg-neutral-100 text-neutral-800 border border-neutral-300 rounded shadow-2xs" title="Total Marks of this test">
+                            {maxMarks}
+                          </div>
+                        </td>
+
+                        {/* Box 2: Marks Obtained typed by admin */}
+                        <td className="py-2 px-3 text-center">
                           <input
                             type="number"
                             disabled={!isPresent}
@@ -442,7 +452,8 @@ ${settings.phone ? `Contact: ${settings.phone}` : ''}`
                             placeholder="Score"
                             value={isPresent ? sEntry.marksInputRaw : ''}
                             onChange={(e) => handleMarkChange(sId, e.target.value)}
-                            className="w-24 px-2.5 py-1 font-mono font-bold text-xs border border-neutral-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-600 bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
+                            className="w-24 px-2.5 py-1 text-center font-mono font-bold text-xs border border-amber-400 bg-amber-50/50 focus:bg-white rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-600 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:border-neutral-200"
+                            title="Enter marks obtained by student"
                           />
                         </td>
 
@@ -481,11 +492,11 @@ ${settings.phone ? `Contact: ${settings.phone}` : ''}`
                             href={waUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors"
-                            title="Share scorecard on WhatsApp"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 rounded-md transition-all shadow-2xs cursor-pointer"
+                            title="Send scorecard directly to student & parent WhatsApp"
                           >
-                            <MessageSquare className="w-3 h-3" />
-                            <span>Share</span>
+                            <Send className="w-3 h-3 text-emerald-700" />
+                            <span>Send</span>
                           </a>
                         </td>
                       </tr>
