@@ -365,15 +365,21 @@ export default function AdminDashboard({ initialTab }) {
   // Students CRUD
   const handleSaveStudent = async (studentPayload) => {
     try {
-      if (studentToEdit) {
+      if (studentToEdit && !studentToEdit.isFromEnquiry) {
         const id = studentToEdit.id || studentToEdit._id
         await studentService.update(id, studentPayload)
         toast.success(`Student record for ${studentPayload.name} updated!`)
       } else {
         await studentService.create(studentPayload)
-        toast.success(`Student ${studentPayload.name} successfully enrolled!`)
+        if (studentPayload.enquiryId) {
+          try {
+            await contactService.updateStatus(studentPayload.enquiryId, 'enrolled')
+          } catch {}
+        }
+        toast.success(`Student ${studentPayload.name} approved & enrolled for Class ${studentPayload.grade}! Login password set to "${studentPayload.password}". Monthly fee: ₹${studentPayload.monthlyFee}/mo.`)
       }
       queryClient.invalidateQueries(['admin-students'])
+      queryClient.invalidateQueries(['admin-enquiries'])
       setIsAddStudentOpen(false)
       setStudentToEdit(null)
     } catch (err) {
@@ -555,17 +561,21 @@ export default function AdminDashboard({ initialTab }) {
     const matchingBatch = batches.find((b) => b.grade === enquiry.grade)
 
     setStudentToEdit({
-      name: enquiry.studentName,
+      name: enquiry.studentName || enquiry.name,
       phone: enquiry.phone,
-      guardianName: enquiry.parentName,
+      guardianName: enquiry.parentName || enquiry.guardianName,
       guardianPhone: enquiry.phone,
-      grade: enquiry.grade,
-      schoolOrCollege: enquiry.schoolName,
+      grade: enquiry.grade || '10th Class',
+      class: enquiry.grade || '10th Class',
+      schoolOrCollege: enquiry.schoolName || enquiry.school,
       batchIds: matchingBatch ? [matchingBatch.id] : [],
       discountPercent: 0,
       status: 'active',
+      password: 'vanita',
       notes: `Converted from online enquiry. Preferred timing: ${enquiry.batchTiming || 'N/A'}. ${enquiry.message ? `Note: "${enquiry.message}"` : ''}`,
-      rollNo: generatedRoll
+      rollNo: generatedRoll,
+      enquiryId: enquiry.id || enquiry._id,
+      isFromEnquiry: true,
     })
     setIsAddStudentOpen(true)
   }

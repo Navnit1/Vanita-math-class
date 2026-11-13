@@ -164,19 +164,14 @@ export default function QuickAccessPanel({ settings = {} }) {
 
     try {
       const res = await authService.register(payload)
-      setRegSuccess(`Registration successful! Logging you in...`)
-      toast.success('Welcome to Vanita Math Classes!')
-
-      // Auto login
-      setTimeout(async () => {
-        try {
-          await login(regPhone.trim(), regPassword.trim() || 'vanita')
-          navigate('/dashboard')
-        } catch {
-          setActiveTab('student')
-          setStudentIdentifier(regPhone.trim())
-        }
-      }, 1200)
+      const sid = res?.data?.studentId || 'VMC'
+      setRegSuccess(`Registration submitted successfully! Your admission request (ID: ${sid}) has been sent to Enquiries for Admin approval. Once approved, you can log in with your credentials.`)
+      toast.success('Registration request received! Administrator will approve your account.')
+      setRegName('')
+      setRegPhone('')
+      setRegParentName('')
+      setRegParentPhone('')
+      setRegSchool('')
     } catch (err) {
       setErrorMessage(err.response?.data?.message || 'Failed to complete registration. Please try again.')
     } finally {

@@ -93,6 +93,9 @@ export default function StudentDashboard() {
             <span className="text-xs text-gray-500 font-medium">
               Roll No: <strong>{profile?.rollNumber || 'Assigned'}</strong>
             </span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+              Standard: Class {profile?.class} · {formatCurrency(profile?.monthlyFee || 2500)}/mo
+            </span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">
             Good {greet}, {user?.name?.split(' ')[0]}!

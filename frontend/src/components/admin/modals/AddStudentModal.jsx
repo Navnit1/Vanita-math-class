@@ -4,6 +4,16 @@ import { formatCurrency } from '@/utils/formatters'
 
 const AVATAR_COLORS = ['#4f46e5', '#0891b2', '#059669', '#d97706', '#7c3aed', '#e11d48']
 
+const getStandardMonthlyFee = (g) => {
+  const str = String(g || '').toLowerCase()
+  if (str.includes('8th')) return 1800
+  if (str.includes('9th')) return 2000
+  if (str.includes('10th')) return 2500
+  if (str.includes('+1') || str.includes('11th')) return 3000
+  if (str.includes('+2') || str.includes('12th')) return 3500
+  return 2500
+}
+
 export default function AddStudentModal({
   isOpen,
   onClose,
@@ -21,6 +31,7 @@ export default function AddStudentModal({
   const [guardianName, setGuardianName] = useState('')
   const [guardianPhone, setGuardianPhone] = useState('')
   const [grade, setGrade] = useState('10th Class')
+  const [monthlyFee, setMonthlyFee] = useState(2500)
   const [schoolOrCollege, setSchoolOrCollege] = useState('')
   const [admissionDate, setAdmissionDate] = useState('')
   const [batchIds, setBatchIds] = useState([])
@@ -31,6 +42,7 @@ export default function AddStudentModal({
 
   useEffect(() => {
     if (studentToEdit) {
+      const g = studentToEdit.class || studentToEdit.grade || '10th Class'
       setName(studentToEdit.fullName || studentToEdit.name || '')
       setRollNo(studentToEdit.studentId || studentToEdit.rollNo || '')
       setPhone(studentToEdit.phone || '')
@@ -38,7 +50,8 @@ export default function AddStudentModal({
       setPassword(studentToEdit.password || 'vanita')
       setGuardianName(studentToEdit.parentName || studentToEdit.guardianName || '')
       setGuardianPhone(studentToEdit.parentPhone || studentToEdit.guardianPhone || '')
-      setGrade(studentToEdit.class || studentToEdit.grade || '10th Class')
+      setGrade(g)
+      setMonthlyFee(Number(studentToEdit.monthlyFee) || getStandardMonthlyFee(g))
       setSchoolOrCollege(studentToEdit.school || studentToEdit.schoolOrCollege || '')
       setAdmissionDate(
         studentToEdit.admissionDate
@@ -60,6 +73,7 @@ export default function AddStudentModal({
       setGuardianName('')
       setGuardianPhone('')
       setGrade('10th Class')
+      setMonthlyFee(2500)
       setSchoolOrCollege('')
       setAdmissionDate(new Date().toISOString().slice(0, 10))
       setBatchIds(batches.length > 0 ? [batches[0].id || batches[0].batchId] : [])
@@ -73,14 +87,10 @@ export default function AddStudentModal({
   if (!isOpen) return null
 
   // Calculate gross and net monthly fee
-  const grossFee = batchIds.reduce((sum, bId) => {
-    const b = batches.find((item) => (item.id || item.batchId) === bId)
-    return sum + Number(b?.monthlyFee || 0)
-  }, 0) || 2500
-
+  const baseMonthlyFee = Number(monthlyFee) || getStandardMonthlyFee(grade)
   const netFee = discountPercent > 0
-    ? Math.max(0, Math.round(grossFee - (grossFee * discountPercent) / 100))
-    : grossFee
+    ? Math.max(0, Math.round(baseMonthlyFee - (baseMonthlyFee * discountPercent) / 100))
+    : baseMonthlyFee
 
   const toggleBatch = (bId) => {
     setBatchIds((prev) =>
@@ -114,12 +124,14 @@ export default function AddStudentModal({
       schoolOrCollege: schoolOrCollege.trim(),
       admissionDate,
       batchIds,
-      batch: batches.find(b => batchIds.includes(b.id || b.batchId))?.name || 'Class 10th - Board Target & Mathematics Mastery',
+      batch: batches.find(b => batchIds.includes(b.id || b.batchId))?.name || 'All Batches',
       monthlyFee: netFee,
+      standardMonthlyFee: baseMonthlyFee,
       discountPercent: Number(discountPercent) || 0,
       status,
       notes: notes.trim(),
       avatarColor,
+      enquiryId: studentToEdit?.enquiryId,
     }
 
     onSave(payload)
@@ -183,18 +195,22 @@ export default function AddStudentModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                Class / Grade (Mathematics) <span className="text-rose-500">*</span>
+                Class / Standard (Mathematics) <span className="text-rose-500">*</span>
               </label>
               <select
                 value={grade}
-                onChange={(e) => setGrade(e.target.value)}
+                onChange={(e) => {
+                  const newGrade = e.target.value
+                  setGrade(newGrade)
+                  setMonthlyFee(getStandardMonthlyFee(newGrade))
+                }}
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white font-medium"
               >
-                <option value="8th Class">Class 8th Mathematics</option>
-                <option value="9th Class">Class 9th Mathematics</option>
-                <option value="10th Class">Class 10th Mathematics</option>
-                <option value="+1 (11th) Mathematics">+1 (11th) Mathematics</option>
-                <option value="+2 (12th) Mathematics">+2 (12th) Mathematics</option>
+                <option value="8th Class">Class 8th Mathematics (₹1,800/mo)</option>
+                <option value="9th Class">Class 9th Mathematics (₹2,000/mo)</option>
+                <option value="10th Class">Class 10th Mathematics (₹2,500/mo)</option>
+                <option value="+1 (11th) Mathematics">+1 (11th) Mathematics (₹3,000/mo)</option>
+                <option value="+2 (12th) Mathematics">+2 (12th) Mathematics (₹3,500/mo)</option>
               </select>
             </div>
 
@@ -320,10 +336,27 @@ export default function AddStudentModal({
           </div>
 
           {/* Concession, Status & Fee Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-200">
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                Concession / Waiver (%)
+                Standard Fee (₹) <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                min="0"
+                value={monthlyFee}
+                onChange={(e) => setMonthlyFee(Number(e.target.value))}
+                className="w-full px-2.5 py-1.5 font-mono font-bold text-xs border border-neutral-300 rounded-lg bg-white"
+              />
+              <span className="text-[10px] text-neutral-500 block mt-0.5">
+                Auto-assigned by Standard
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                Concession (%)
               </label>
               <input
                 type="number"
@@ -331,7 +364,7 @@ export default function AddStudentModal({
                 max="100"
                 value={discountPercent}
                 onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                className="w-full px-3 py-1.5 font-mono border border-neutral-300 rounded-lg bg-white"
+                className="w-full px-2.5 py-1.5 font-mono text-xs border border-neutral-300 rounded-lg bg-white"
               />
             </div>
 
@@ -342,19 +375,22 @@ export default function AddStudentModal({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-1.5 border border-neutral-300 rounded-lg bg-white font-medium"
+                className="w-full px-2.5 py-1.5 text-xs border border-neutral-300 rounded-lg bg-white font-medium"
               >
-                <option value="active">Active (Enrolled)</option>
+                <option value="active">Active (Approved)</option>
                 <option value="inactive">Inactive / On Leave</option>
               </select>
             </div>
 
             <div>
-              <span className="block text-xs text-neutral-500 mb-1">Net Monthly Fee</span>
-              <div className="font-mono text-base font-bold text-indigo-700">
+              <span className="block text-xs text-neutral-500 mb-1">Monthly Fee for Student</span>
+              <div className="font-mono text-base font-bold text-emerald-700">
                 {formatCurrency(netFee, settings.currencySymbol)}
                 <span className="text-xs text-neutral-500 font-normal"> / mo</span>
               </div>
+              <span className="text-[10px] text-emerald-700 font-semibold block">
+                Shown in Student Portal
+              </span>
             </div>
           </div>
 

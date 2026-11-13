@@ -133,18 +133,51 @@ export const approveStudent = async (req, res, next) => {
     const student = await Student.findById(req.params.id)
     if (!student) return next(createError(404, 'Student not found'))
 
-    const user = await User.findByIdAndUpdate(
-      student.userId,
-      { status: 'active' },
-      { new: true }
-    )
+    const user = await User.findById(student.userId)
     if (!user) return next(createError(404, 'Linked user account not found'))
 
-    student.status = 'active'
-    if (!student.monthlyFee || student.monthlyFee === 0) {
-      student.monthlyFee = getStandardMonthlyFee(student.class)
-      student.totalFee = Math.max(0, student.monthlyFee * 10 - (student.discount || 0))
+    const {
+      password,
+      class: studentClass,
+      grade,
+      monthlyFee,
+      batch,
+      rollNo,
+      studentId,
+      discount
+    } = req.body
+
+    // Set / update password if provided by admin
+    if (password && password.trim()) {
+      user.password = password.trim()
     }
+    user.status = 'active'
+    await user.save()
+
+    // Assign standard / class
+    const targetClass = normalizeStandard(studentClass || grade || student.class)
+    student.class = targetClass
+    student.status = 'active'
+
+    if (batch) {
+      student.batch = batch
+    }
+
+    if (rollNo || studentId) {
+      student.studentId = (rollNo || studentId).trim()
+    }
+
+    // Assign monthly fee according to standard or custom amount
+    if (monthlyFee != null && monthlyFee !== '') {
+      student.monthlyFee = Number(monthlyFee)
+    } else {
+      student.monthlyFee = getStandardMonthlyFee(targetClass)
+    }
+
+    if (discount != null) {
+      student.discount = Number(discount)
+    }
+    student.totalFee = Math.max(0, student.monthlyFee * 10 - (student.discount || 0))
     await student.save()
 
     // Mark any linked ContactInquiry records as enrolled
@@ -153,16 +186,27 @@ export const approveStudent = async (req, res, next) => {
       { status: 'enrolled', enrolledStudentId: student._id, enrolledAt: new Date() }
     )
 
-    // Build admission message
+    // Build admission message with assigned credentials & standard monthly fee
     const targetPhone = student.parentPhone || student.phone
-    const credMessage = buildAdmissionCredentialsMessage({
-      studentName: student.fullName,
-      studentId: student.studentId,
-      username: user.username,
-      tempPassword: '(Your password set during registration)',
-      studentClass: student.class,
-      batch: student.batch,
-    })
+    const finalPassword = (password && password.trim()) ? password.trim() : 'vanita'
+    const credMessage = `*${process.env.CENTER_NAME || 'Vanita Math Classes'}*
+*ADMISSION APPROVED & PORTAL ACCESS DETAILS*
+━━━━━━━━━━━━━━━━━━━━━━━
+Dear *${student.fullName}*,
+Your admission has been *APPROVED* by Er. Vikas / Vanita Rani Gupta.
+
+• *Roll Number / Student ID:* ${student.studentId}
+• *Standard / Class:* Class ${student.class}
+• *Batch:* ${student.batch}
+• *Monthly Fee:* ₹${student.monthlyFee.toLocaleString('en-IN')}/month
+• *Portal Username / ID:* ${user.username || student.studentId}
+• *Portal Password:* ${finalPassword}
+━━━━━━━━━━━━━━━━━━━━━━━
+*Student Portal Login URL:*
+https://vanitamathclasses1.vercel.app/login
+
+Please keep your login credentials safe.`
+
     const whatsAppLink = createDirectWhatsAppLink(targetPhone, credMessage)
 
     // Dispatch automated WhatsApp notification (non-blocking)
@@ -182,15 +226,17 @@ export const approveStudent = async (req, res, next) => {
       student,
       user,
       whatsAppLink,
+      monthlyFee: student.monthlyFee,
+      standard: student.class,
       notificationResult,
-    }, `Student ${student.fullName} (${student.studentId}) approved and activated successfully!`)
+    }, `Student ${student.fullName} (${student.studentId}) approved with Class ${student.class} and monthly fee ₹${student.monthlyFee}!`)
 
     recordAudit({
       action: 'student.approve',
       user: req.user,
       targetType: 'Student',
       targetId: student._id,
-      description: `Approved student ${student.fullName} (${student.studentId})`,
+      description: `Approved student ${student.fullName} (${student.studentId}) for Class ${student.class} with monthly fee ₹${student.monthlyFee}`,
       req,
     })
   } catch (err) {
@@ -198,9 +244,6 @@ export const approveStudent = async (req, res, next) => {
   }
 }
 
-/**
- * Admin-assisted password reset for students (especially without verified email)
- */
 export const adminResetStudentPassword = async (req, res, next) => {
   try {
     const student = await Student.findById(req.params.id)

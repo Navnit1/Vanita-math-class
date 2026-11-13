@@ -50,7 +50,7 @@ export const studentService = {
   getMyAttendance: async (params) => { const { data } = await api.get('/students/me/attendance', { params }); return data.data },
   create: async (payload) => { const { data } = await api.post('/students', payload); return data.data },
   update: async (id, payload) => { const { data } = await api.put(`/students/${id}`, payload); return data.data },
-  approve: async (id) => { const { data } = await api.patch(`/students/${id}/approve`); return data.data },
+  approve: async (id, payload) => { const { data } = await api.patch(`/students/${id}/approve`, payload); return data.data },
   toggleStatus: async (id) => { const { data } = await api.patch(`/students/${id}/toggle-status`); return data.data },
   adminResetPassword: async (id) => { const { data } = await api.post(`/students/${id}/reset-password`); return data.data },
   remindFeeWhatsApp: async (id) => { const { data } = await api.post(`/students/${id}/remind-fee-whatsapp`); return data },
