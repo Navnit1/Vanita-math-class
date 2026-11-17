@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
@@ -14,9 +15,51 @@ export default function Courses() {
   })
 
   // Merge live database enrolled counts with authoritative configuration
-  const batches = (liveBatches && liveBatches.length > 0)
-    ? liveBatches
-    : BATCH_DEFINITIONS.map(b => ({ ...b, enrolledCount: 0, enrollmentPercentage: 0 }))
+  const batches = useMemo(() => {
+    return BATCH_DEFINITIONS.map((def) => {
+      const live = Array.isArray(liveBatches)
+        ? liveBatches.find((b) => {
+            const bStd = String(b.standard || b.grade || b.name || '').toLowerCase()
+            const defStd = def.standard.toLowerCase()
+            return (
+              bStd === defStd ||
+              bStd.includes(defStd) ||
+              (defStd === '8th' && (bStd.includes('8th') || bStd.includes('class 8') || bStd.includes('std 8'))) ||
+              (defStd === '9th' && (bStd.includes('9th') || bStd.includes('class 9') || bStd.includes('std 9'))) ||
+              (defStd === '10th' && (bStd.includes('10th') || bStd.includes('class 10') || bStd.includes('std 10'))) ||
+              (defStd === '+1' && (bStd.includes('+1') || bStd.includes('11th') || bStd.includes('class 11'))) ||
+              (defStd === '+2' && (bStd.includes('+2') || bStd.includes('12th') || bStd.includes('class 12')))
+            )
+          })
+        : null
+
+      const enrolled = live ? Number(live.enrolledCount ?? 0) : 0
+      const maxCap = Number(live?.maxCapacity || live?.capacity || def.maxCapacity || 30)
+      const pct = live
+        ? Number(live.enrollmentPercentage ?? Math.min(100, Math.round((enrolled / maxCap) * 100)))
+        : Math.min(100, Math.round((enrolled / maxCap) * 100))
+      const isFull = enrolled >= maxCap
+      const seatsLeft = Math.max(0, maxCap - enrolled)
+
+      return {
+        ...def,
+        ...(live || {}),
+        standard: def.standard,
+        standardLabel: def.standardLabel,
+        batchTitle: def.batchTitle,
+        features: def.features,
+        description: def.description,
+        schedule: live?.schedule || def.schedule,
+        faculty: live?.faculty || live?.instructor || def.faculty,
+        monthlyFee: live?.monthlyFee || def.monthlyFee,
+        enrolledCount: enrolled,
+        maxCapacity: maxCap,
+        enrollmentPercentage: pct,
+        isFull,
+        seatsLeft,
+      }
+    })
+  }, [liveBatches])
 
   return (
     <section id="courses" className="bg-[#FAFAFA] py-20 sm:py-28 border-b border-[#D9DDE3]">

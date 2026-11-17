@@ -12,56 +12,93 @@ const router = Router()
  */
 router.get('/', async (req, res, next) => {
   try {
-    let dbBatches = await Batch.find({ isActive: true }).sort({ createdAt: 1 })
-
-    // If database batches are empty, seed from BATCH_DEFINITIONS
-    if (dbBatches.length === 0) {
-      const defaultDocs = BATCH_DEFINITIONS.map(b => ({
-        batchId: `batch-${b.standard.replace('+', '')}`,
-        name: `${b.standardLabel} - ${b.batchTitle}`,
-        grade: b.standardLabel,
-        subject: 'Mathematics',
-        instructor: b.faculty,
-        schedule: b.schedule,
-        monthlyFee: b.monthlyFee,
-        capacity: b.maxCapacity,
-        room: b.standard === '10th' ? 'Hall B (Smart Classroom)' : 'Hall A',
-        colorTheme: b.standard === '8th' ? 'indigo' : b.standard === '9th' ? 'cyan' : b.standard === '10th' ? 'emerald' : b.standard === '+1' ? 'amber' : 'purple',
-        focus: b.focus,
-        isActive: true,
-      }))
-      dbBatches = await Batch.insertMany(defaultDocs)
+    // Authoritative 5 standards definitions with regex patterns for student matching
+    const STANDARD_PATTERNS = {
+      '8th': {
+        classRegex: /8th|class\s*8|grade\s*8|^8$|std\s*8/i,
+        batchRegex: /class\s*8|8th/i,
+      },
+      '9th': {
+        classRegex: /9th|class\s*9|grade\s*9|^9$|std\s*9/i,
+        batchRegex: /class\s*9|9th/i,
+      },
+      '10th': {
+        classRegex: /10th|class\s*10|grade\s*10|^10$|std\s*10/i,
+        batchRegex: /class\s*10|10th/i,
+      },
+      '+1': {
+        classRegex: /\+1|11th|class\s*11|grade\s*11|^11$|std\s*11/i,
+        batchRegex: /\+1|11th/i,
+      },
+      '+2': {
+        classRegex: /\+2|12th|class\s*12|grade\s*12|^12$|std\s*12/i,
+        batchRegex: /\+2|12th/i,
+      },
     }
 
+    // Also fetch any custom batches stored in DB
+    const dbBatches = await Batch.find({ isActive: true }).lean()
+
     const batches = await Promise.all(
-      dbBatches.map(async (b) => {
-        const obj = b.toObject ? b.toObject() : b
-        const cleanDigits = b.grade ? b.grade.replace(/[^0-9]/g, '') : ''
-        const safeGrade = b.grade ? b.grade.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : ''
-        const orConditions = [
-          { class: b.grade },
-          { class: b.batchId },
-          { batch: b.name },
-          { batch: b.batchId },
-        ]
-        if (cleanDigits) {
-          orConditions.push({ class: new RegExp(cleanDigits, 'i') })
-        }
-        if (safeGrade) {
-          orConditions.push({ class: new RegExp(safeGrade, 'i') })
+      BATCH_DEFINITIONS.map(async (def) => {
+        const pattern = STANDARD_PATTERNS[def.standard] || {
+          classRegex: new RegExp(def.standard, 'i'),
+          batchRegex: new RegExp(def.standard, 'i'),
         }
 
-        const count = await Student.countDocuments({
-          $or: orConditions,
-          status: 'active',
+        const matchingDbBatch = dbBatches.find(b => {
+          const bGrade = String(b.grade || b.name || '').toLowerCase()
+          return (
+            bGrade.includes(def.standard.toLowerCase()) ||
+            bGrade.includes(def.standardLabel.toLowerCase()) ||
+            (def.standard === '8th' && bGrade.includes('8')) ||
+            (def.standard === '9th' && bGrade.includes('9')) ||
+            (def.standard === '10th' && bGrade.includes('10')) ||
+            (def.standard === '+1' && (bGrade.includes('+1') || bGrade.includes('11'))) ||
+            (def.standard === '+2' && (bGrade.includes('+2') || bGrade.includes('12')))
+          )
         })
-        const percentage = Math.min(100, Math.round((count / (b.capacity || 30)) * 100))
+
+        const orFilters = [
+          { class: pattern.classRegex },
+          { grade: pattern.classRegex },
+          { batch: pattern.batchRegex },
+          { batch: def.standardLabel },
+        ]
+
+        if (matchingDbBatch) {
+          orFilters.push({ batch: matchingDbBatch.name })
+          if (matchingDbBatch._id) {
+            orFilters.push({ batchIds: matchingDbBatch._id.toString() })
+          }
+          if (matchingDbBatch.batchId) {
+            orFilters.push({ batchIds: matchingDbBatch.batchId })
+          }
+        }
+
+        // Live count of active students enrolled in this standard from MongoDB
+        const count = await Student.countDocuments({
+          status: { $in: ['active', 'enrolled', 'ACTIVE'] },
+          $or: orFilters,
+        })
+
+        const maxCap = matchingDbBatch?.capacity || def.maxCapacity || 30
+        const percentage = Math.min(100, Math.round((count / maxCap) * 100))
+
         return {
-          ...obj,
-          id: obj.batchId || obj._id.toString(),
+          ...def,
+          ...(matchingDbBatch || {}),
+          id: matchingDbBatch?.batchId || matchingDbBatch?._id?.toString() || `batch-${def.standard.replace('+', '')}`,
+          standard: def.standard,
+          standardLabel: def.standardLabel,
+          batchTitle: def.batchTitle,
+          monthlyFee: matchingDbBatch?.monthlyFee || def.monthlyFee,
+          maxCapacity: maxCap,
+          capacity: maxCap,
           enrolledCount: count,
           enrollmentPercentage: percentage,
-          isFull: count >= (b.capacity || 30),
+          isFull: count >= maxCap,
+          seatsLeft: Math.max(0, maxCap - count),
         }
       })
     )
