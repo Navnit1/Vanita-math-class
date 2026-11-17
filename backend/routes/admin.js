@@ -7,6 +7,7 @@ import {
   updateSettings,
   exportAllData,
   importAllData,
+  transitionAcademicYear,
 } from '../controllers/adminController.js'
 import { protect, authorize } from '../middleware/auth.js'
 
@@ -20,5 +21,6 @@ router.get('/settings', getSettings)
 router.put('/settings', updateSettings)
 router.get('/export-data', exportAllData)
 router.post('/import-data', importAllData)
+router.post('/transition-academic-year', transitionAcademicYear)
 
 export default router

@@ -18,7 +18,7 @@ const studentSchema = new mongoose.Schema({
   dateOfBirth: { type: Date },
   admissionDate: { type: Date, default: Date.now },
   profilePhoto: { type: String, default: null },
-  status: { type: String, enum: ['active', 'inactive', 'graduated'], default: 'active' },
+  status: { type: String, enum: ['active', 'inactive', 'graduated', 'alumni'], default: 'active' },
   monthlyFee: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
   totalFee: { type: Number, default: 0 },

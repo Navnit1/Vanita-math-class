@@ -170,8 +170,8 @@ export default function DashboardView({
           </div>
         )}
 
-        {/* 6 Quick Action Cards */}
-        <div className="mt-6 pt-6 border-t border-white/20 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        {/* Quick Action Buttons */}
+        <div className="mt-6 pt-6 border-t border-white/20 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <button
             type="button"
             onClick={onOpenRecordPayment}
@@ -214,28 +214,6 @@ export default function DashboardView({
           >
             <Upload className="w-4 h-4 shrink-0 text-sky-950" />
             <span className="font-extrabold text-sky-950">📤 Upload Notes</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigateTab('tests')}
-            style={{ backgroundColor: '#a855f7', color: '#ffffff' }}
-            className="flex items-center justify-center gap-1.5 py-3 px-3 hover:bg-purple-400 active:bg-purple-600 font-extrabold rounded-xl text-xs shadow-md transition-all cursor-pointer hover:scale-[1.02]"
-            title="Weekly test records"
-          >
-            <ClipboardList className="w-4 h-4 shrink-0 text-white" />
-            <span className="font-extrabold text-white">Weekly Tests ({tests.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigateTab('dues')}
-            style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
-            className="flex items-center justify-center gap-1.5 py-3 px-3 hover:bg-red-400 active:bg-red-600 font-extrabold rounded-xl text-xs shadow-md transition-all cursor-pointer hover:scale-[1.02]"
-            title="View fee dues and WhatsApp reminder"
-          >
-            <AlertCircle className="w-4 h-4 shrink-0 text-white" />
-            <span className="font-extrabold text-white">Due Fees ({dueBreakdown.length})</span>
           </button>
         </div>
       </div>

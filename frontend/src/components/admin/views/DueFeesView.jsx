@@ -45,15 +45,49 @@ export default function DueFeesView({
   ]
 
   // Calculate dues per active student for selected month
+  const parseMonthYearIndex = (str) => {
+    if (!str) return null
+    const parts = str.trim().split(/\s+/)
+    if (parts.length < 2) return null
+    const mName = parts[0].toLowerCase()
+    const year = parseInt(parts[1], 10)
+    const monthMap = {
+      january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+      july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+    }
+    if (monthMap[mName] !== undefined && !isNaN(year)) {
+      return year * 12 + monthMap[mName]
+    }
+    return null
+  }
+
   const defaultersList = useMemo(() => {
+    const selectedMonthIndex = parseMonthYearIndex(selectedMonth)
+
     return students
       .filter((s) => s.status === 'active')
       .map((student) => {
         const studentId = student.id || student._id
+        const sId = String(studentId || '')
+        const sRoll = String(student.studentId || student.rollNo || '').toLowerCase()
+
+        // Check admission/approval date: fees only apply from approval month onwards
+        const adm = student.admissionDate
+          ? new Date(student.admissionDate)
+          : student.createdAt
+          ? new Date(student.createdAt)
+          : null
+        let isEnrolledInMonth = true
+        if (adm && !isNaN(adm.getTime()) && selectedMonthIndex !== null) {
+          const admMonthIndex = adm.getFullYear() * 12 + adm.getMonth()
+          if (selectedMonthIndex < admMonthIndex) {
+            isEnrolledInMonth = false
+          }
+        }
 
         // Calculate expected fee
-        let expectedFee = Number(student.monthlyFee || 0)
-        if (!expectedFee && batches.length > 0) {
+        let expectedFee = isEnrolledInMonth ? Number(student.monthlyFee || 0) : 0
+        if (isEnrolledInMonth && !expectedFee && batches.length > 0) {
           const b = batches.find((item) =>
             (student.batchIds || []).includes(item.id || item.batchId) ||
             item.name === student.batch ||
@@ -61,17 +95,22 @@ export default function DueFeesView({
           )
           expectedFee = b ? Number(b.monthlyFee || 2500) : 2500
         }
-        if (student.discountPercent > 0) {
+        if (student.discountPercent > 0 && expectedFee > 0) {
           expectedFee = Math.round(expectedFee * (1 - student.discountPercent / 100))
         }
 
         // Sum paid amount for this month
         const paidForMonth = payments
-          .filter(
-            (p) =>
-              p.studentId === studentId &&
-              (p.month || '').toLowerCase() === selectedMonth.toLowerCase()
-          )
+          .filter((p) => {
+            const pStudentId = String(p.studentId?._id || p.studentId || '')
+            const pRoll = String(p.rollNo || p.studentId?.studentId || '').toLowerCase()
+            const matchesStudent =
+              (sId && pStudentId === sId) ||
+              (sRoll && (sRoll === pRoll || sRoll === pStudentId.toLowerCase()))
+            const matchesMonth =
+              (p.month || '').trim().toLowerCase() === selectedMonth.trim().toLowerCase()
+            return matchesStudent && matchesMonth
+          })
           .reduce((sum, p) => sum + Number(p.amount || 0), 0)
 
         const balanceDue = Math.max(0, expectedFee - paidForMonth)
@@ -81,7 +120,8 @@ export default function DueFeesView({
           monthlyExpected: expectedFee,
           paidForMonth,
           balanceDue,
-          isUnpaid: paidForMonth === 0
+          isUnpaid: paidForMonth === 0,
+          isEnrolledInMonth,
         }
       })
       .filter((item) => item.balanceDue > 0)
@@ -93,10 +133,10 @@ export default function DueFeesView({
     const q = searchTerm.toLowerCase().trim()
     if (!q) return defaultersList
     return defaultersList.filter(({ student }) => {
-      const name = (student.name || '').toLowerCase()
-      const rollNo = (student.rollNo || '').toLowerCase()
-      const guardian = (student.guardianName || '').toLowerCase()
-      const gPhone = (student.guardianPhone || '')
+      const name = (student.fullName || student.name || '').toLowerCase()
+      const rollNo = (student.studentId || student.rollNo || '').toLowerCase()
+      const guardian = (student.parentName || student.guardianName || '').toLowerCase()
+      const gPhone = (student.parentPhone || student.guardianPhone || '')
       const sPhone = (student.phone || '')
       return (
         name.includes(q) ||
@@ -307,21 +347,29 @@ export default function DueFeesView({
                             onClick={() => onViewStudent && onViewStudent(student)}
                             className="font-semibold text-neutral-900 hover:text-red-600 text-left block cursor-pointer"
                           >
-                            {student.name}
+                            {student.fullName || student.name}
                           </button>
-                          <span className="font-mono text-xs text-neutral-500">
-                            {student.rollNo}
-                          </span>
+                          <div className="flex items-center gap-1.5 font-mono text-xs text-neutral-500">
+                            <span>{student.studentId || student.rollNo}</span>
+                            {(student.admissionDate || student.createdAt) && (
+                              <>
+                                <span>·</span>
+                                <span className="font-sans text-[11px] text-neutral-400">
+                                  Approved: {formatDate(student.admissionDate || student.createdAt)}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-xs text-neutral-600">
                           <div className="font-medium text-neutral-900">
-                            {student.grade || student.class}
+                            {student.class || student.grade}
                           </div>
                           <div className="text-neutral-500 mt-0.5 flex items-center gap-1">
-                            <span>Parent: {student.guardianName || 'Guardian'}</span>
+                            <span>Parent: {student.parentName || student.guardianName || 'Parent'}</span>
                             <span aria-hidden="true">·</span>
                             <span className="font-mono font-semibold">
-                              {student.guardianPhone || student.phone || 'N/A'}
+                              {student.parentPhone || student.guardianPhone || student.phone || 'N/A'}
                             </span>
                           </div>
                         </td>

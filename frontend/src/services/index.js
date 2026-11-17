@@ -180,6 +180,7 @@ export const adminService = {
   updateSettings: async (payload) => { const { data } = await api.put('/admin/settings', payload); return data.data },
   exportAllData: async () => { const { data } = await api.get('/admin/export-data'); return data.data },
   importAllData: async (backup) => { const { data } = await api.post('/admin/import-data', { data: backup }); return data.data },
+  transitionAcademicYear: async (payload) => { const { data } = await api.post('/admin/transition-academic-year', payload); return data.data },
 }
 
 export { authService } from './authService'

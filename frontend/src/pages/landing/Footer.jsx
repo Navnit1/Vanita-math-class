@@ -48,7 +48,7 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-20 bg-white rounded-xl p-1 flex items-center justify-center shrink-0 shadow-md">
                 <img
-                  src="/vmc-logo-official.png"
+                  src="/vmc-logo.svg"
                   alt="Vanita Math Classes"
                   className="h-full w-auto object-contain"
                 />

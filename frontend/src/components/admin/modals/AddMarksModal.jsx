@@ -337,7 +337,7 @@ ${settings.phone ? `Contact: ${settings.phone}` : ''}`
           </div>
         </div>
 
-        {/* Test Summary Banner & Quick Score Fill */}
+        {/* Test Summary Banner */}
         {activeTest && (
           <div className="px-4 py-2.5 bg-amber-50/80 border-b border-amber-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-3 text-xs">
@@ -348,20 +348,6 @@ ${settings.phone ? `Contact: ${settings.phone}` : ''}`
               <span className="font-mono text-neutral-600">Passing: {passingMarks}</span>
               <span className="text-amber-800">·</span>
               <span className="text-emerald-700 font-medium">{targetStudents.length} Students in {selectedStandard}</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="font-semibold text-neutral-600">Quick Fill:</span>
-              {[100, 90, 80, 70, 50].map((pct) => (
-                <button
-                  key={pct}
-                  type="button"
-                  onClick={() => handleQuickFillPercentage(pct)}
-                  className="px-2 py-0.5 bg-white border border-amber-300 rounded text-[11px] font-bold text-amber-950 hover:bg-amber-100 cursor-pointer"
-                >
-                  {pct}%
-                </button>
-              ))}
             </div>
           </div>
         )}

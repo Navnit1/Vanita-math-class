@@ -320,3 +320,112 @@ export const importAllData = async (req, res, next) => {
     next(err)
   }
 }
+
+
+export const transitionAcademicYear = async (req, res, next) => {
+  try {
+    const { nextAcademicYear } = req.body
+    if (!nextAcademicYear) return next(createError(400, 'New academic year is required'))
+
+    let settings = await Settings.findOne()
+    if (!settings) settings = await Settings.create({})
+    const oldYear = settings.academicYear || '2026-2027'
+
+    const allStudents = await Student.find({ status: { $in: ['active', 'pending'] } })
+    const results = {
+      promoted: [],
+      graduatedAlumni: [],
+      blockedDueToFees: [],
+    }
+
+    const NEXT_CLASS_MAP = {
+      '8th': { next: '9th', fee: 2000 },
+      '8th Class': { next: '9th Class', fee: 2000 },
+      'Class 8th': { next: 'Class 9th', fee: 2000 },
+      'Class 8th Mathematics': { next: 'Class 9th Mathematics', fee: 2000 },
+      '9th': { next: '10th', fee: 2500 },
+      '9th Class': { next: '10th Class', fee: 2500 },
+      'Class 9th': { next: 'Class 10th', fee: 2500 },
+      'Class 9th Mathematics': { next: 'Class 10th Mathematics', fee: 2500 },
+      '10th': { next: '+1 (11th) Mathematics', fee: 3000 },
+      '10th Class': { next: '+1 (11th) Mathematics', fee: 3000 },
+      'Class 10th': { next: '+1 (11th) Mathematics', fee: 3000 },
+      'Class 10th Mathematics': { next: '+1 (11th) Mathematics', fee: 3000 },
+      '+1': { next: '+2 (12th) Mathematics', fee: 3500 },
+      '+1 (11th)': { next: '+2 (12th) Mathematics', fee: 3500 },
+      '+1 (11th) Mathematics': { next: '+2 (12th) Mathematics', fee: 3500 },
+      '11th': { next: '+2 (12th) Mathematics', fee: 3500 },
+      '+2': { next: 'alumni', fee: 0 },
+      '+2 (12th)': { next: 'alumni', fee: 0 },
+      '+2 (12th) Mathematics': { next: 'alumni', fee: 0 },
+      '+2 (12th Board)': { next: 'alumni', fee: 0 },
+      '12th': { next: 'alumni', fee: 0 },
+    }
+
+    for (const student of allStudents) {
+      // Calculate pending fee balance
+      const pendingFee = Math.max(0, (student.totalFee || 0) - (student.paidFee || 0))
+      if (pendingFee > 0) {
+        results.blockedDueToFees.push({
+          studentId: student.studentId,
+          name: student.fullName,
+          class: student.class,
+          pendingFee,
+        })
+        continue // Cannot move to new academic year until fees are cleared
+      }
+
+      const currentClassKey = String(student.class || student.grade || '').trim()
+      const target = NEXT_CLASS_MAP[currentClassKey] || {
+        next: currentClassKey.includes('10') ? '+1 (11th) Mathematics' : currentClassKey.includes('+1') ? '+2 (12th) Mathematics' : 'alumni',
+        fee: currentClassKey.includes('10') ? 3000 : currentClassKey.includes('+1') ? 3500 : 0
+      }
+
+      if (target.next === 'alumni' || currentClassKey.includes('12') || currentClassKey.includes('+2')) {
+        student.status = 'alumni'
+        student.notes = `${student.notes || ''} [Alumni - Graduated session ${oldYear}]`.trim()
+        student.monthlyFee = 0
+        await student.save()
+        results.graduatedAlumni.push({
+          studentId: student.studentId,
+          name: student.fullName,
+          fromClass: currentClassKey,
+        })
+      } else {
+        student.class = target.next
+        student.grade = target.next
+        student.monthlyFee = target.fee
+        student.academicYear = nextAcademicYear
+        student.totalFee = 0
+        student.paidFee = 0
+        student.feeStatus = 'pending'
+        await student.save()
+        results.promoted.push({
+          studentId: student.studentId,
+          name: student.fullName,
+          fromClass: currentClassKey,
+          toClass: target.next,
+          newMonthlyFee: target.fee,
+        })
+      }
+    }
+
+    // Archive previous year notes / materials so old notes are unavailable for new session while keeping full restore capability
+    await Material.updateMany(
+      { isActive: true },
+      { $set: { isActive: false, isArchived: true, sessionYear: oldYear } }
+    )
+
+    // Update settings
+    settings.academicYear = nextAcademicYear
+    await settings.save()
+
+    sendResponse(res, 200, {
+      settings,
+      results,
+      message: `Academic year transitioned to ${nextAcademicYear}. ${results.promoted.length} students promoted, ${results.graduatedAlumni.length} students graduated to Alumni. ${results.blockedDueToFees.length} students held back due to uncleared fees.`
+    })
+  } catch (err) {
+    next(err)
+  }
+}

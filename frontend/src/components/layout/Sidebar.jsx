@@ -94,7 +94,7 @@ export default function Sidebar({ children }) {
               title="Vanita Math Classes"
             >
               <img
-                src="/vmc-logo-official.png"
+                src="/vmc-logo.svg"
                 alt="Vanita Math Classes"
                 className="h-full w-auto object-contain"
               />

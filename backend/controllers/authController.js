@@ -281,7 +281,21 @@ export const requestPasswordResetOtp = async (req, res, next) => {
 
     if (!user && !loginId.includes('@')) {
       const safeId = String(loginId || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
+      const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
+      if (student) {
+        user = await User.findById(student.userId).select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +lastOtpSentAt')
+      }
+    }
+
+    const cleanPhone = loginId.replace(/[^0-9]/g, '')
+    if (!user && cleanPhone.length >= 10) {
+      const phoneTail = cleanPhone.slice(-10)
+      const student = await Student.findOne({
+        $or: [
+          { phone: new RegExp(phoneTail + '$') },
+          { parentPhone: new RegExp(phoneTail + '$') }
+        ]
+      })
       if (student) {
         user = await User.findById(student.userId).select('+resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts +lastOtpSentAt')
       }
@@ -339,7 +353,21 @@ export const verifyOtpAndResetPassword = async (req, res, next) => {
 
     if (!user && !loginId.includes('@')) {
       const safeId = String(loginId || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
+      const student = await Student.findOne({ studentId: new RegExp(`^${safeId}$`, 'i') })
+      if (student) {
+        user = await User.findById(student.userId).select('+password +resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts')
+      }
+    }
+
+    const cleanPhone = loginId.replace(/[^0-9]/g, '')
+    if (!user && cleanPhone.length >= 10) {
+      const phoneTail = cleanPhone.slice(-10)
+      const student = await Student.findOne({
+        $or: [
+          { phone: new RegExp(phoneTail + '$') },
+          { parentPhone: new RegExp(phoneTail + '$') }
+        ]
+      })
       if (student) {
         user = await User.findById(student.userId).select('+password +resetPasswordOtpHash +resetPasswordOtpExpires +resetPasswordOtpAttempts')
       }
@@ -378,6 +406,12 @@ export const verifyOtpAndResetPassword = async (req, res, next) => {
     user.resetPasswordOtpAttempts = 0
     user.mustChangePassword = false
     await user.save()
+
+    // Keep Student collection password in sync
+    await Student.findOneAndUpdate(
+      { userId: user._id },
+      { password: newPassword }
+    )
 
     logger.info(`Password successfully reset via OTP for user: ${user.username || user.email}`)
     sendResponse(res, 200, null, 'Password reset successfully! You can now log in with your new password.')

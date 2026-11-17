@@ -29,11 +29,13 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.1 }}
           >
             <div className="flex items-center gap-3 mb-3">
-              <img
-                src="/vmc-logo.svg"
-                alt="Vanita Math Classes"
-                className="w-12 h-12 object-contain filter drop-shadow-sm"
-              />
+              <div className="h-11 w-22 bg-white rounded-xl p-1.5 flex items-center justify-center border border-red-200 shadow-sm">
+                <img
+                  src="/vmc-logo.svg"
+                  alt="Vanita Math Classes"
+                  className="h-full w-auto object-contain"
+                />
+              </div>
               <span className="text-xs font-black uppercase tracking-wider text-red-600 font-serif">
                 Vanita Math Classes
               </span>

@@ -71,7 +71,7 @@ export default function LandingNav() {
           <Link to="/" className="flex items-center gap-3 sm:gap-4 group shrink-0">
             <div className="h-10 w-20 sm:h-12 sm:w-24 bg-white rounded-xl p-1.5 flex items-center justify-center transition-all shadow-md">
               <img
-                src="/vmc-logo-official.png"
+                src="/vmc-logo.svg"
                 alt="Vanita Math Classes logo"
                 className="h-full w-auto object-contain"
               />
@@ -149,7 +149,7 @@ export default function LandingNav() {
         {open && (
           <div className="lg:hidden bg-white text-[#171717] border-t border-[#D9DDE3] px-5 py-4 space-y-2 shadow-2xl animate-in slide-in-from-top-2">
             <div className="pb-3 mb-2 border-b border-gray-100 flex items-center gap-3">
-              <img src="/vmc-logo-official.png" alt="VMC Logo" className="h-9 w-auto object-contain rounded-md" />
+              <img src="/vmc-logo.svg" alt="VMC Logo" className="h-9 w-auto object-contain rounded-md" />
               <div>
                 <p className="font-extrabold text-[#171717] text-sm">VANITA MATH CLASSES</p>
                 <p className="text-[11px] text-[#64748B]">8th, 9th, 10th, +1 & +2 · Bathinda</p>

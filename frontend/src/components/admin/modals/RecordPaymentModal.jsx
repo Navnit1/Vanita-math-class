@@ -28,7 +28,7 @@ export default function RecordPaymentModal({
   const [paymentMode, setPaymentMode] = useState('UPI')
   const [referenceNo, setReferenceNo] = useState('')
   const [notes, setNotes] = useState('')
-  const [recordedBy, setRecordedBy] = useState('Admin (Vikas)')
+  const [recordedBy, setRecordedBy] = useState('Admin (Navnit)')
   const [receiptNo, setReceiptNo] = useState('')
 
   // Generate next receipt number

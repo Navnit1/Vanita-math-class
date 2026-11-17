@@ -79,6 +79,7 @@ export default function AdminDashboard({ initialTab }) {
 
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState(null)
+  const [receiptStudentOverride, setReceiptStudentOverride] = useState(null)
 
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false)
   const [testToEdit, setTestToEdit] = useState(null)
@@ -371,7 +372,31 @@ export default function AdminDashboard({ initialTab }) {
             await contactService.updateStatus(studentPayload.enquiryId, 'enrolled')
           } catch {}
         }
-        toast.success(`Student ${studentPayload.name} approved & enrolled for Class ${studentPayload.grade}! Login password set to "${studentPayload.password}". Monthly fee: ₹${studentPayload.monthlyFee}/mo.`)
+
+        const phone = (studentPayload.phone || studentPayload.guardianPhone || '').replace(/[^0-9]/g, '')
+        const cleanPhone = phone.length === 10 ? `91${phone}` : phone
+        const whatsappMsg = encodeURIComponent(`*${settings.centerName || 'Vanita Math Classes'}*
+*STUDENT ADMISSION & LOGIN CREDENTIALS*
+━━━━━━━━━━━━━━━━━━━━━━━
+Hello *${studentPayload.name}*,
+Congratulations! Your admission at *Vanita Math Classes* for *${studentPayload.grade}* has been *APPROVED*.
+
+• *Roll Number / Student ID:* ${studentPayload.studentId}
+• *Class:* ${studentPayload.grade}
+• *Monthly Fee:* ₹${studentPayload.monthlyFee}/month
+• *Portal Login Password:* ${studentPayload.password}
+• *Portal URL:* https://vanita-math-class.vercel.app/login
+
+You can log in to your Student Portal to access weekly tests, attendance, study notes, and pay tuition fees. After login, you can also change your password anytime via Email OTP or Phone.
+
+Faculty: Vanita Rani Gupta (17+ yrs exp)
+Contact: ${settings.phone || '98159-62612'}`)
+
+        const waUrl = `https://wa.me/${cleanPhone}?text=${whatsappMsg}`
+        if (cleanPhone) {
+          window.open(waUrl, '_blank')
+        }
+        toast.success(`Student ${studentPayload.name} approved! Credentials dispatched to WhatsApp (+ ${cleanPhone}).`)
       }
       queryClient.invalidateQueries(['admin-students'])
       queryClient.invalidateQueries(['admin-enquiries'])
@@ -555,22 +580,26 @@ export default function AdminDashboard({ initialTab }) {
 
     const matchingBatch = batches.find((b) => b.grade === enquiry.grade)
 
+    const enquiryGrade = enquiry.grade || '10th Class'
+    const stdFee = getStandardMonthlyFee(enquiryGrade)
+
     setStudentToEdit({
       name: enquiry.studentName || enquiry.name,
       phone: enquiry.phone,
       guardianName: enquiry.parentName || enquiry.guardianName,
       guardianPhone: enquiry.phone,
-      grade: enquiry.grade || '10th Class',
-      class: enquiry.grade || '10th Class',
+      grade: enquiryGrade,
+      class: enquiryGrade,
       schoolOrCollege: enquiry.schoolName || enquiry.school,
       batchIds: matchingBatch ? [matchingBatch.id] : [],
       discountPercent: 0,
+      monthlyFee: stdFee,
+      isFromEnquiry: true,
       status: 'active',
       password: 'vanita',
       notes: `Converted from online enquiry. Preferred timing: ${enquiry.batchTiming || 'N/A'}. ${enquiry.message ? `Note: "${enquiry.message}"` : ''}`,
       rollNo: generatedRoll,
       enquiryId: enquiry.id || enquiry._id,
-      isFromEnquiry: true,
     })
     setIsAddStudentOpen(true)
   }
@@ -602,6 +631,18 @@ export default function AdminDashboard({ initialTab }) {
     }
   }
 
+  const handleTransitionAcademicYear = async (payload) => {
+    try {
+      const res = await adminService.transitionAcademicYear(payload)
+      toast.success(res.message || 'Academic year transitioned successfully!')
+      queryClient.invalidateQueries()
+      return res
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to transition academic year')
+      throw err
+    }
+  }
+
   // View Student Profile shortcut
   const handleViewStudentProfile = (student) => {
     setProfileStudent(student)
@@ -609,8 +650,9 @@ export default function AdminDashboard({ initialTab }) {
   }
 
   // View Receipt shortcut
-  const handleViewReceipt = (payment) => {
+  const handleViewReceipt = (payment, student = null) => {
     setSelectedPayment(payment)
+    setReceiptStudentOverride(student || null)
     setIsReceiptModalOpen(true)
   }
 
@@ -629,8 +671,32 @@ export default function AdminDashboard({ initialTab }) {
   // Student corresponding to selected receipt
   const receiptStudent = useMemo(() => {
     if (!selectedPayment) return null
-    return students.find((s) => s.id === selectedPayment.studentId) || null
-  }, [selectedPayment, students])
+    if (receiptStudentOverride) return receiptStudentOverride
+
+    const pStudentId = String(selectedPayment.studentId?._id || selectedPayment.studentId || '')
+    const found = students.find((s) => {
+      const sId = String(s.id || s._id || '')
+      const sRoll = String(s.studentId || s.rollNo || '').toLowerCase()
+      return (sId && sId === pStudentId) || (sRoll && sRoll === pStudentId.toLowerCase())
+    })
+    if (found) return found
+
+    if (selectedPayment.studentId && typeof selectedPayment.studentId === 'object') {
+      return selectedPayment.studentId
+    }
+
+    return {
+      fullName: selectedPayment.studentName || 'Student',
+      name: selectedPayment.studentName || 'Student',
+      studentId: selectedPayment.rollNo || 'VMC-REC',
+      rollNo: selectedPayment.rollNo || 'VMC-REC',
+      class: selectedPayment.class || '10th Class',
+      grade: selectedPayment.grade || '10th Class',
+      monthlyFee: Number(selectedPayment.amount || 2500),
+      parentName: 'Parent',
+      guardianName: 'Parent',
+    }
+  }, [selectedPayment, receiptStudentOverride, students])
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 flex flex-col font-sans">
@@ -807,6 +873,7 @@ export default function AdminDashboard({ initialTab }) {
             batches={batches}
             payments={payments}
             onImportAllData={handleImportAllData}
+            onTransitionAcademicYear={handleTransitionAcademicYear}
           />
         )}
       </main>
@@ -829,7 +896,7 @@ export default function AdminDashboard({ initialTab }) {
           <div className="flex items-center gap-3">
             <span>Session {settings.academicYear}</span>
             <span aria-hidden="true" className="text-neutral-300">·</span>
-            <span>Admin Console (Vikas)</span>
+            <span>Admin: Navnit</span>
             <span aria-hidden="true" className="text-neutral-300">·</span>
             <button
               type="button"

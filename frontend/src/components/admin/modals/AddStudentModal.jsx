@@ -51,7 +51,8 @@ export default function AddStudentModal({
       setGuardianName(studentToEdit.parentName || studentToEdit.guardianName || '')
       setGuardianPhone(studentToEdit.parentPhone || studentToEdit.guardianPhone || '')
       setGrade(g)
-      setMonthlyFee(Number(studentToEdit.monthlyFee) || getStandardMonthlyFee(g))
+      const autoFee = getStandardMonthlyFee(g)
+      setMonthlyFee(Number(studentToEdit.monthlyFee) > 0 && !studentToEdit.isFromEnquiry ? Number(studentToEdit.monthlyFee) : autoFee)
       setSchoolOrCollege(studentToEdit.school || studentToEdit.schoolOrCollege || '')
       setAdmissionDate(
         studentToEdit.admissionDate
@@ -202,7 +203,8 @@ export default function AddStudentModal({
                 onChange={(e) => {
                   const newGrade = e.target.value
                   setGrade(newGrade)
-                  setMonthlyFee(getStandardMonthlyFee(newGrade))
+                  const autoFee = getStandardMonthlyFee(newGrade)
+                  setMonthlyFee(autoFee)
                 }}
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white font-medium"
               >
@@ -298,40 +300,6 @@ export default function AddStudentModal({
                 onChange={(e) => setAdmissionDate(e.target.value)}
                 className="w-full px-3 py-2 font-mono border border-neutral-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
               />
-            </div>
-          </div>
-
-          {/* Batch Allocation */}
-          <div>
-            <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
-              Enrolled Batch(es)
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-1 border border-neutral-200 rounded-lg">
-              {batches.map((b) => {
-                const bId = b.id || b.batchId
-                const checked = batchIds.includes(bId)
-                return (
-                  <label
-                    key={bId}
-                    className={`flex items-start gap-2 p-2 border rounded-lg cursor-pointer transition-colors ${
-                      checked ? 'bg-indigo-50/70 border-indigo-300' : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleBatch(bId)}
-                      className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <div className="text-xs">
-                      <p className="font-semibold text-neutral-900">{b.name}</p>
-                      <p className="text-[11px] text-neutral-500 font-mono">
-                        {formatCurrency(b.monthlyFee, settings.currencySymbol)}/mo · {b.schedule}
-                      </p>
-                    </div>
-                  </label>
-                )
-              })}
             </div>
           </div>
 

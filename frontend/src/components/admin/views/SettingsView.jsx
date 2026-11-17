@@ -9,7 +9,11 @@ import {
   Download,
   Upload,
   RotateCcw,
-  AlertTriangle
+  AlertTriangle,
+  GraduationCap,
+  ArrowUpCircle,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react'
 
 export default function SettingsView({
@@ -20,6 +24,7 @@ export default function SettingsView({
   batches = [],
   payments = [],
   onImportAllData,
+  onTransitionAcademicYear,
 }) {
   const [formData, setFormData] = useState({
     centerName: 'Vanita Math Classes',
@@ -39,6 +44,45 @@ export default function SettingsView({
 
   const [savedSuccess, setSavedSuccess] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [nextYearInput, setNextYearInput] = useState('2027-2028')
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [transitionOutcome, setTransitionOutcome] = useState(null)
+
+  const activeStudents = students.filter((s) => s.status === 'active')
+  const defaulterStudents = activeStudents.filter((s) => Math.max(0, (s.totalFee || 0) - (s.paidFee || 0)) > 0)
+  const graduatingAlumni = activeStudents.filter((s) => {
+    const cls = String(s.class || s.grade || '')
+    return cls.includes('12') || cls.includes('+2')
+  })
+  const promotableStudents = activeStudents.filter((s) => {
+    const cls = String(s.class || s.grade || '')
+    const isAlumni = cls.includes('12') || cls.includes('+2')
+    const hasDues = Math.max(0, (s.totalFee || 0) - (s.paidFee || 0)) > 0
+    return !isAlumni && !hasDues
+  })
+
+  const handleRolloverSession = async () => {
+    if (!nextYearInput.trim()) {
+      alert('Please specify the new academic year (e.g. 2027-2028)')
+      return
+    }
+
+    const confirmMsg = `Are you sure you want to transition to Academic Session ${nextYearInput}?\n\n• ${promotableStudents.length} eligible students will be promoted +1 class\n• ${graduatingAlumni.length} Class 12th students will graduate to Alumni\n• ${defaulterStudents.length} students with uncleared fees will be held back until cleared\n• Previous session study notes will be archived safely\n\nThis cannot be undone automatically.`
+    if (!window.confirm(confirmMsg)) return
+
+    setIsTransitioning(true)
+    try {
+      if (onTransitionAcademicYear) {
+        const res = await onTransitionAcademicYear({ nextAcademicYear: nextYearInput.trim() })
+        setTransitionOutcome(res?.results || null)
+        setFormData((prev) => ({ ...prev, academicYear: nextYearInput.trim() }))
+      }
+    } catch (err) {
+      console.error('Session transition failed:', err)
+    } finally {
+      setIsTransitioning(false)
+    }
+  }
 
   useEffect(() => {
     if (settings && Object.keys(settings).length > 0) {
@@ -335,6 +379,126 @@ export default function SettingsView({
           </button>
         </div>
       </form>
+
+      {/* Academic Year Progression & Student Promotion Card */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-6 space-y-5 shadow-2xs">
+        <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="w-5 h-5 text-indigo-600" />
+            <div>
+              <h2 className="text-base font-bold text-neutral-900">Academic Year Progression & Student Promotion</h2>
+              <p className="text-xs text-neutral-500">
+                Advance active students to next class, graduate 10+2 to Alumni, update monthly fees, archive old notes, and enforce fee clearance
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg">
+            Active: {formData.academicYear || '2026-2027'}
+          </span>
+        </div>
+
+        {/* Transition Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+            <div className="flex items-center justify-between text-emerald-800 text-xs font-bold">
+              <span>Ready for Promotion</span>
+              <ArrowUpCircle className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-emerald-900 mt-1 tabular-nums">
+              {promotableStudents.length} Students
+            </div>
+            <span className="text-[11px] text-emerald-700 block mt-0.5">
+              +1 Class higher & fees auto-updated
+            </span>
+          </div>
+
+          <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl">
+            <div className="flex items-center justify-between text-indigo-800 text-xs font-bold">
+              <span>10+2 Alumni Graduates</span>
+              <GraduationCap className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-indigo-900 mt-1 tabular-nums">
+              {graduatingAlumni.length} Students
+            </div>
+            <span className="text-[11px] text-indigo-700 block mt-0.5">
+              Moved to Alumni with ₹0 fees
+            </span>
+          </div>
+
+          <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl">
+            <div className="flex items-center justify-between text-amber-800 text-xs font-bold">
+              <span>Held Back (Pending Fees)</span>
+              <ShieldAlert className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-amber-900 mt-1 tabular-nums">
+              {defaulterStudents.length} Students
+            </div>
+            <span className="text-[11px] text-amber-700 block mt-0.5">
+              Must clear pending fees before promotion
+            </span>
+          </div>
+        </div>
+
+        {/* Rules explanation */}
+        <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs space-y-1.5 text-neutral-600">
+          <div className="font-bold text-neutral-800 flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-indigo-600" />
+            <span>Automatic Session Transition Rules:</span>
+          </div>
+          <ul className="list-disc pl-5 space-y-1 text-neutral-600">
+            <li><strong>Class Progression:</strong> Class 8th → 9th (₹2,000/mo), 9th → 10th (₹2,500/mo), 10th → +1 (₹3,000/mo), +1 → +2 (₹3,500/mo).</li>
+            <li><strong>Class 10+2 Graduates:</strong> Students in 12th/10+2 are marked as <em>Alumni</em> and monthly fees set to ₹0.</li>
+            <li><strong>Fee Clearance Enforcement:</strong> Students with uncleared fees are held back in the previous session until dues are paid.</li>
+            <li><strong>Notes Archival:</strong> Previous session study notes and PDF materials are archived safely to start the new academic year fresh while retaining full restore capabilities.</li>
+          </ul>
+        </div>
+
+        {/* Action Form */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-neutral-700 whitespace-nowrap">
+              Target New Academic Year:
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. 2027-2028"
+              value={nextYearInput}
+              onChange={(e) => setNextYearInput(e.target.value)}
+              className="px-3 py-1.5 font-mono text-xs border border-neutral-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+            />
+          </div>
+
+          <button
+            type="button"
+            disabled={isTransitioning}
+            onClick={handleRolloverSession}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg shadow-sm cursor-pointer transition-colors disabled:opacity-50"
+          >
+            <ArrowUpCircle className="w-4 h-4" />
+            <span>{isTransitioning ? 'Transitioning Session...' : 'Roll Over Academic Year & Promote'}</span>
+          </button>
+        </div>
+
+        {/* Transition Outcome Summary */}
+        {transitionOutcome && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-2">
+            <div className="flex items-center gap-1.5 text-emerald-900 font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Academic Year Transition Completed Successfully!</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-neutral-700">
+              <div><strong>Promoted:</strong> {transitionOutcome.promoted?.length || 0} students</div>
+              <div><strong>Alumni:</strong> {transitionOutcome.graduatedAlumni?.length || 0} students</div>
+              <div><strong>Held Back (Due fees):</strong> {transitionOutcome.blockedDueToFees?.length || 0} students</div>
+            </div>
+            {transitionOutcome.blockedDueToFees?.length > 0 && (
+              <div className="text-[11px] text-amber-800 pt-1">
+                Notice: The following students have outstanding dues and remain in their current class until fees are cleared: {transitionOutcome.blockedDueToFees.map(s => `${s.name} (₹${s.pendingFee})`).join(', ')}.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Database Backup & Restore Section */}
       <div className="bg-white border border-neutral-200 rounded-xl p-6 space-y-4 shadow-2xs">

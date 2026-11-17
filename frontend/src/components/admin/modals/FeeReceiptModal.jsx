@@ -12,15 +12,24 @@ export default function FeeReceiptModal({
 }) {
   const [copied, setCopied] = useState(false)
 
-  if (!isOpen || !payment || !student) return null
+  if (!isOpen || !payment) return null
 
-  const studentName = student.fullName || student.name || 'Student'
-  const rollNo = student.studentId || student.rollNo || 'VMC-101'
-  const grade = student.class || student.grade || '10th Class'
-  const guardianName = student.parentName || student.guardianName || 'Parent'
+  const resolvedStudent = student || (payment?.studentId && typeof payment.studentId === 'object' ? payment.studentId : null) || {
+    fullName: payment?.studentName || 'Student',
+    name: payment?.studentName || 'Student',
+    studentId: payment?.rollNo || 'VMC-REC',
+    rollNo: payment?.rollNo || 'VMC-REC',
+    class: payment?.class || '10th Class',
+    grade: payment?.grade || '10th Class',
+  }
+
+  const studentName = resolvedStudent.fullName || resolvedStudent.name || payment.studentName || 'Student'
+  const rollNo = resolvedStudent.studentId || resolvedStudent.rollNo || payment.rollNo || 'VMC-101'
+  const grade = resolvedStudent.class || resolvedStudent.grade || payment.class || payment.grade || '10th Class'
+  const guardianName = resolvedStudent.parentName || resolvedStudent.guardianName || 'Parent'
   const receiptNo = payment.receiptNumber || payment.receiptNo || 'VMC-2026-0001'
   const amount = Number(payment.amount) || 0
-  const expectedFee = Number(payment.expectedFee || student.monthlyFee || amount)
+  const expectedFee = Number(payment.expectedFee || resolvedStudent.monthlyFee || amount)
   const discount = Number(payment.discount || 0)
   const balanceDue = Math.max(0, expectedFee - amount)
   const amountInWords = numberToWords(amount)
@@ -28,7 +37,7 @@ export default function FeeReceiptModal({
   const refNo = payment.transactionId || payment.referenceNo || ''
 
   const enrolledCourseNames = batches
-    .filter((b) => (student.batchIds || []).includes(b.id || b.batchId) || b.name === student.batch || b.grade === grade)
+    .filter((b) => ((resolvedStudent?.batchIds || []).includes(b.id || b.batchId) || b.name === resolvedStudent?.batch || b.grade === grade))
     .map((b) => b.name)
     .join(', ') || 'Specialized Mathematics Coaching'
 
@@ -46,7 +55,7 @@ export default function FeeReceiptModal({
 • Balance Due: ${settings.currencySymbol || '₹'}${balanceDue.toLocaleString('en-IN')}
 ━━━━━━━━━━━━━━━━━━━━━━━
 Amount in Words: ${amountInWords}
-Received by: ${payment.recordedBy || 'Accounts (Vikas)'}
+Received by: ${payment.recordedBy || 'Accounts (Navnit)'}
 
 Thank you for your payment!
 ${settings.phone ? `Contact: ${settings.phone}` : ''}`

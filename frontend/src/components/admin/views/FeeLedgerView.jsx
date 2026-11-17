@@ -50,20 +50,31 @@ export default function FeeLedgerView({
     return Array.from(set)
   }, [payments])
 
+  // Monthly revenue breakdown
+  const monthlyRevenue = useMemo(() => {
+    const map = {}
+    payments.forEach((p) => {
+      const m = p.month || 'Other'
+      map[m] = (map[m] || 0) + Number(p.amount || 0)
+    })
+    return map
+  }, [payments])
+
   // Filtered payments
   const filteredPayments = useMemo(() => {
     const q = searchTerm.toLowerCase().trim()
     return payments.filter((p) => {
       const pStudentId = String(p.studentId?._id || p.studentId || '')
+      const pRoll = String(p.rollNo || p.studentId?.studentId || '').toLowerCase()
       const student = students.find((s) => {
         const sId = String(s.id || s._id || '')
         const sRoll = String(s.studentId || s.rollNo || '').toLowerCase()
-        return (sId && sId === pStudentId) || (sRoll && sRoll === pStudentId.toLowerCase())
+        return (sId && sId === pStudentId) || (sRoll && (sRoll === pRoll || sRoll === pStudentId.toLowerCase()))
       })
       const name = (student?.fullName || student?.name || p.studentName || p.studentId?.fullName || '').toLowerCase()
       const rollNo = (student?.studentId || student?.rollNo || p.rollNo || p.studentId?.studentId || '').toLowerCase()
-      const receiptNo = (p.receiptNo || '').toLowerCase()
-      const refNo = (p.referenceNo || '').toLowerCase()
+      const receiptNo = (p.receiptNo || p.receiptNumber || '').toLowerCase()
+      const refNo = (p.referenceNo || p.transactionId || '').toLowerCase()
 
       const matchesSearch =
         !q ||
@@ -73,7 +84,7 @@ export default function FeeLedgerView({
         refNo.includes(q)
 
       const matchesMonth = monthFilter === 'all' || p.month === monthFilter
-      const matchesMode = modeFilter === 'all' || p.paymentMode === modeFilter
+      const matchesMode = modeFilter === 'all' || (p.paymentMode || p.paymentMethod) === modeFilter
 
       return matchesSearch && matchesMonth && matchesMode
     })
@@ -247,17 +258,19 @@ export default function FeeLedgerView({
             )}
           </div>
 
-          <div className="w-full md:w-52">
+          <div className="w-full md:w-60">
             <select
               value={monthFilter}
               onChange={(e) => setMonthFilter(e.target.value)}
               aria-label="Filter by Billing Month"
               className="w-full px-3 py-2 text-xs sm:text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 bg-white"
             >
-              <option value="all">All Months</option>
+              <option value="all">
+                All Months ({formatCurrency(payments.reduce((sum, p) => sum + Number(p.amount || 0), 0), currencySymbol)})
+              </option>
               {availableMonths.map((m) => (
                 <option key={m} value={m}>
-                  {m}
+                  {m} {monthlyRevenue[m] ? `(${formatCurrency(monthlyRevenue[m], currencySymbol)})` : '(₹0)'}
                 </option>
               ))}
             </select>
@@ -326,35 +339,65 @@ export default function FeeLedgerView({
               ) : (
                 filteredPayments.map((p) => {
                   const pId = p.id || p._id
-                  const student = students.find((s) => (s.id || s._id) === p.studentId)
+                  const pStudentId = String(p.studentId?._id || p.studentId || '')
+                  const pRoll = String(p.rollNo || p.studentId?.studentId || '').toLowerCase()
+                  const student = students.find((s) => {
+                    const sId = String(s.id || s._id || '')
+                    const sRoll = String(s.studentId || s.rollNo || '').toLowerCase()
+                    return (sId && sId === pStudentId) || (sRoll && (sRoll === pRoll || sRoll === pStudentId.toLowerCase()))
+                  })
+
+                  const studentName = student?.fullName || student?.name || p.studentName || p.studentId?.fullName || 'Student'
+                  const rollNo = student?.studentId || student?.rollNo || p.rollNo || p.studentId?.studentId || '-'
+                  const studentClass = student?.class || student?.grade || p.class || p.grade || '10th Class'
+                  const approvalDate = student?.admissionDate || student?.createdAt
+                  const resolvedStudent = student || {
+                    fullName: studentName,
+                    name: studentName,
+                    studentId: rollNo,
+                    rollNo: rollNo,
+                    class: studentClass,
+                    grade: studentClass,
+                    monthlyFee: Number(p.amount || 2500),
+                  }
 
                   return (
                     <tr key={pId} className="hover:bg-neutral-50/80 transition-colors">
                       <td className="py-3 px-4 font-mono font-semibold text-neutral-900">
-                        {p.receiptNo || 'VMC-REC'}
+                        {p.receiptNo || p.receiptNumber || 'VMC-REC'}
                       </td>
                       <td className="py-3 px-4 text-neutral-600 text-xs whitespace-nowrap">
                         {formatDate(p.paymentDate)}
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-semibold text-neutral-900">
-                          {student?.name || 'Unknown Student'}
+                          {studentName}
                         </div>
-                        <div className="text-xs font-mono text-neutral-500">
-                          {student?.rollNo || '-'}
+                        <div className="text-xs text-neutral-500 flex items-center gap-1.5 font-mono">
+                          <span>{rollNo}</span>
+                          <span>·</span>
+                          <span className="font-sans font-medium text-neutral-600">{studentClass}</span>
+                          {approvalDate && (
+                            <>
+                              <span>·</span>
+                              <span className="font-sans text-[11px] text-neutral-400">
+                                Approved: {formatDate(approvalDate)}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 px-4 font-medium text-neutral-800">{p.month}</td>
                       <td className="py-3 px-4">
                         <span className="text-xs font-mono px-2 py-0.5 bg-neutral-100 text-neutral-800 rounded">
-                          {p.paymentMode || 'Cash'}
+                          {p.paymentMode || p.paymentMethod || 'Cash'}
                         </span>
                       </td>
                       <td
                         className="py-3 px-4 font-mono text-neutral-500 text-xs truncate max-w-[140px]"
-                        title={p.referenceNo}
+                        title={p.referenceNo || p.transactionId}
                       >
-                        {p.referenceNo || '—'}
+                        {p.referenceNo || p.transactionId || '—'}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700 tabular-nums">
                         {formatCurrency(p.amount, currencySymbol)}
@@ -363,7 +406,7 @@ export default function FeeLedgerView({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => onViewReceipt && onViewReceipt(p)}
+                            onClick={() => onViewReceipt && onViewReceipt(p, resolvedStudent)}
                             title="Print / View Official Receipt"
                             className="px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors cursor-pointer flex items-center gap-1"
                           >
